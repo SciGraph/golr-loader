@@ -1,8 +1,12 @@
-package org.monarch;
+package org.monarch.golr;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Collection;
 
 import javax.inject.Inject;
 
-import org.monarch.beans.Closure;
+import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -28,11 +32,13 @@ public class ClosureUtil {
     this.curieUtil = curieUtil;
   }
 
-  public Closure getClosure(Node start, DirectedRelationshipType type) {
+  public Closure getClosure(Node start, Collection<DirectedRelationshipType> types) {
     Closure closure = new Closure();
     TraversalDescription description = graphDb.traversalDescription().depthFirst().uniqueness(Uniqueness.NODE_GLOBAL);
-    description = description.relationships(type.getType(), type.getDirection());
-    for (Path path: description.traverse(start)) {
+    for (DirectedRelationshipType type: checkNotNull(types)) {
+      description = description.relationships(type.getType(), type.getDirection());
+    }
+    for (Path path: description.traverse(checkNotNull(start))) {
       Node endNode = path.endNode();
       Optional<String> curie = curieUtil.getCurie((String)endNode.getProperty(CommonProperties.URI));
       if (curie.isPresent()) {

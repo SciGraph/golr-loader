@@ -1,4 +1,4 @@
-package org.monarch.beans;
+package org.monarch.golr.beans;
 
 import java.util.ArrayList;
 import java.util.List;
