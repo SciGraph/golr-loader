@@ -21,7 +21,7 @@ import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 import edu.sdsc.scigraph.neo4j.GraphUtil;
 import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
 
-public class ClosureUtil {
+class ClosureUtil {
 
   private final GraphDatabaseService graphDb;
   private final CurieUtil curieUtil;
@@ -32,7 +32,7 @@ public class ClosureUtil {
     this.curieUtil = curieUtil;
   }
 
-  public Closure getClosure(Node start, Collection<DirectedRelationshipType> types) {
+  Closure getClosure(Node start, Collection<DirectedRelationshipType> types) {
     Closure closure = new Closure();
     TraversalDescription description = graphDb.traversalDescription().depthFirst().uniqueness(Uniqueness.NODE_GLOBAL);
     for (DirectedRelationshipType type: checkNotNull(types)) {

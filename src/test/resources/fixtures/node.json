@@ -1,0 +1,6 @@
+{
+  "node_id": "X:b",
+  "node_label": "b",
+  "node_id_closure": ["X:b", "X:a"],
+  "node_label_closure": ["b"]
+}
