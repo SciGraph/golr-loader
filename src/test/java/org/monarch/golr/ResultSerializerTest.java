@@ -8,14 +8,11 @@ import static org.hamcrest.Matchers.is;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
-import org.neo4j.graphdb.Node;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -23,13 +20,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 
-import edu.sdsc.scigraph.frames.NodeProperties;
 import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
-import edu.sdsc.scigraph.owlapi.OwlRelationships;
-import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
-import edu.sdsc.scigraph.util.GraphTestBase;
 
-public class ResultSerializerTest extends GraphTestBase {
+public class ResultSerializerTest extends GolrLoadSetup {
 
   StringWriter writer = new StringWriter();
   ResultSerializer serializer;
@@ -38,10 +31,6 @@ public class ResultSerializerTest extends GraphTestBase {
   @Before
   public void setup() throws Exception {
     generator = new JsonFactory().createGenerator(writer);
-    Map<String, String> curieMap = new HashMap<>();
-    curieMap.put("X", "http://x.org/x_");
-    CurieUtil curieUtil = new CurieUtil(curieMap);
-    ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
     serializer = new ResultSerializer(generator, curieUtil, closureUtil);
     generator.writeStartObject();
   }
@@ -81,11 +70,6 @@ public class ResultSerializerTest extends GraphTestBase {
 
   @Test
   public void serializeNode() throws Exception {
-    Node a, b;
-    a = createNode("http://x.org/x_a");
-    b = createNode("http://x.org/x_b");
-    b.setProperty(NodeProperties.LABEL, "b");
-    b.createRelationshipTo(a, OwlRelationships.RDFS_SUBCLASS_OF);
     serializer.serialize("node", b);
     JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), false);
   }
@@ -103,10 +87,6 @@ public class ResultSerializerTest extends GraphTestBase {
 
   @Test
   public void serializeNodeWithDynamicType() throws Exception {
-    Node a, b;
-    a = createNode("http://x.org/x_a");
-    b = createNode("http://x.org/x_b");
-    b.setProperty(NodeProperties.LABEL, "b");
     a.createRelationshipTo(b, DynamicRelationshipType.withName("hasPart"));
     serializer.serialize("node$hasPart-IN", b);
     JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), false);
