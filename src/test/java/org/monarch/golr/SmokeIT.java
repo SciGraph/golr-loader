@@ -6,7 +6,6 @@ import java.util.Map;
 import org.junit.Test;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Result;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.google.inject.AbstractModule;
@@ -33,11 +32,12 @@ public class SmokeIT extends GolrLoadSetup {
       }
       
     });
-    ResultProcessor processor = i.getInstance(ResultProcessor.class);
-    GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *, 'foo' AS bar");
-    Result result = graphDb.execute(query.getQuery());
+    GolrLoader processor = i.getInstance(GolrLoader.class);
+    GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
+    query.getProjection().put("thing", "thing");
+    query.getProjection().put("otherThing", "otherThing");
     StringWriter writer = new StringWriter();
-    processor.process(query, result, writer);
+    processor.process(query, writer);
     JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), false);
   }
   
