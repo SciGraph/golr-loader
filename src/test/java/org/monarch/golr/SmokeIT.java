@@ -33,7 +33,7 @@ public class SmokeIT extends GolrLoadSetup {
       
     });
     GolrLoader processor = i.getInstance(GolrLoader.class);
-    GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
+    GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[c:CAUSES]->(otherThing) RETURN *");
     query.getProjection().put("thing", "thing");
     query.getProjection().put("otherThing", "otherThing");
     StringWriter writer = new StringWriter();

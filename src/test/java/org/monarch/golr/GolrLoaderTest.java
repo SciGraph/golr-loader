@@ -17,7 +17,8 @@ public class GolrLoaderTest extends GolrLoadSetup {
 
   @Before
   public void setup() {
-    processor = new GolrLoader(graphDb, new ResultSerializerFactoryTestImpl());
+    EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
+    processor = new GolrLoader(graphDb, new ResultSerializerFactoryTestImpl(), stub);
   }
 
   @Test
@@ -29,21 +30,21 @@ public class GolrLoaderTest extends GolrLoadSetup {
 
   @Test
   public void defaultClosuresSerialize() throws Exception {
-    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[:CAUSES]->(end) RETURN *");
+    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[c:CAUSES]->(end) RETURN *");
     query.getProjection().put("start", "thing");
     query.getProjection().put("end", "otherThing");
     processor.process(query, writer);
-    JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), false);
+    JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), true);
   }
 
   @Test
   public void customClosuresSerialize() throws Exception {
-    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[:CAUSES]->(end) RETURN *");
+    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[c:CAUSES]->(end) RETURN *");
     query.getProjection().put("start", "thing");
     query.getProjection().put("end", "otherThing");
     query.getTypes().put("end", new DirectedRelationshipType("partOf", "OUTGOING"));
     processor.process(query, writer);
-    JSONAssert.assertEquals(getFixture("fixtures/customClosureTypeResult.json"), writer.toString(), false);
+    JSONAssert.assertEquals(getFixture("fixtures/customClosureTypeResult.json"), writer.toString(), true);
   }
 
 }

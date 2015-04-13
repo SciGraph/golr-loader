@@ -35,7 +35,7 @@ class ResultSerializer {
       new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING);
   private static final DirectedRelationshipType TYPE = 
       new DirectedRelationshipType(OwlRelationships.RDF_TYPE, Direction.OUTGOING);
-  private static final Collection<DirectedRelationshipType> DEFAULT_CLOSURE_TYPES =
+  static final Collection<DirectedRelationshipType> DEFAULT_CLOSURE_TYPES =
       ImmutableSet.of(SUBCLASS, TYPE);
 
   private final JsonGenerator generator;

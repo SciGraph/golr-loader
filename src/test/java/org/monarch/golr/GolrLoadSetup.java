@@ -47,6 +47,13 @@ public class GolrLoadSetup extends GraphTestBase {
       d = r3.getStartNode();
       e = r4.getEndNode();
       f = r5.getEndNode();
+      Node assn = createNode("http://x.org/a_assn");
+      Node assnParent = createNode("http://x.org/a_assn_parent");
+      assn.createRelationshipTo(assnParent, OwlRelationships.RDFS_SUBCLASS_OF);
+      Node evidence = createNode("http://x.org/a_evidence");
+      assn.createRelationshipTo(evidence, DynamicRelationshipType.withName("evidence"));
+      assn.createRelationshipTo(d, DynamicRelationshipType.withName("subject"));
+      assn.createRelationshipTo(e, DynamicRelationshipType.withName("object"));
       tx.success();
     }
   }

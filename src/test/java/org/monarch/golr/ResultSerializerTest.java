@@ -42,7 +42,7 @@ public class ResultSerializerTest extends GolrLoadSetup {
     serializer.serialize("long", 1L);
     serializer.serialize("float", 1.0F);
     serializer.serialize("double", 1.0F);
-    JSONAssert.assertEquals(getFixture("fixtures/primitives.json"), getActual(), false);
+    JSONAssert.assertEquals(getFixture("fixtures/primitives.json"), getActual(), true);
   }
 
   @Test
@@ -53,13 +53,13 @@ public class ResultSerializerTest extends GolrLoadSetup {
     serializer.serialize("long", (Object)1L);
     serializer.serialize("float", (Object)1.0F);
     serializer.serialize("double", (Object)1.0F);
-    JSONAssert.assertEquals(getFixture("fixtures/primitives.json"), getActual(), false);
+    JSONAssert.assertEquals(getFixture("fixtures/primitives.json"), getActual(), true);
   }
 
   @Test
   public void serializeNode() throws Exception {
     serializer.serialize("node", b);
-    JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), false);
+    JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), true);
   }
 
   @Test

@@ -3,7 +3,7 @@ package org.monarch.golr;
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 
-public class GolrLoaderModule extends AbstractModule {
+class GolrLoaderModule extends AbstractModule {
 
   @Override
   protected void configure() {

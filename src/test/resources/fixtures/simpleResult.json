@@ -5,6 +5,7 @@
 		"thing_label_closure":["C","A"],
 		"otherThing_id":"X:e",
 		"otherThing_id_closure":["X:e"],
-		"otherThing_label_closure":[]
+		"otherThing_label_closure":[],
+		"evidence_graph":"foo"
 	}
 ]
