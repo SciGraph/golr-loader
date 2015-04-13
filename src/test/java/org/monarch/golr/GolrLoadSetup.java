@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.neo4j.graphdb.DynamicRelationshipType;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
@@ -25,14 +26,13 @@ public class GolrLoadSetup extends GraphTestBase {
   static CurieUtil curieUtil;
   static ClosureUtil closureUtil;
   static Map<String, String> curieMap = new HashMap<>();
-  
+
   static String getFixture(String name) throws IOException {
     URL url = Resources.getResource(name);
     return Resources.toString(url, Charsets.UTF_8);
   }
-  
-  @BeforeClass
-  public static void buildGraph() {
+
+  static void populateGraph(GraphDatabaseService graphDb) {
     try (Transaction tx = graphDb.beginTx()) {
       Relationship r1 = addRelationship("http://x.org/a_a", "http://x.org/a_b", OwlRelationships.RDFS_SUBCLASS_OF);
       Relationship r2 = addRelationship("http://x.org/a_b", "http://x.org/a_c", OwlRelationships.RDFS_SUBCLASS_OF);
@@ -47,11 +47,16 @@ public class GolrLoadSetup extends GraphTestBase {
       d = r3.getStartNode();
       e = r4.getEndNode();
       f = r5.getEndNode();
-      curieMap.put("X", "http://x.org/a_");
-      curieUtil = new CurieUtil(curieMap);
-      closureUtil = new ClosureUtil(graphDb, curieUtil);
       tx.success();
     }
   }
-  
+
+  @BeforeClass
+  public static void buildGraph() {
+    populateGraph(graphDb);
+    curieMap.put("X", "http://x.org/a_");
+    curieUtil = new CurieUtil(curieMap);
+    closureUtil = new ClosureUtil(graphDb, curieUtil);
+  }
+
 }

@@ -1,5 +1,6 @@
 package org.monarch.golr.beans;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +16,7 @@ public class GolrCypherQuery {
   private Map<String, String> projection = new HashMap<>();
 
   GolrCypherQuery() {}
-  
+
   public GolrCypherQuery(String query) {
     this.query = query;
   }
@@ -26,6 +27,10 @@ public class GolrCypherQuery {
 
   public Multimap<String, DirectedRelationshipType> getTypes() {
     return types;
+  }
+
+  public Map<String, Collection<DirectedRelationshipType>> getCollectedTypes() {
+    return types.asMap();
   }
 
   public Map<String, String> getProjection() {

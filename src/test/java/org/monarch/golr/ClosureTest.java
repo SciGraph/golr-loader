@@ -16,7 +16,7 @@ import edu.sdsc.scigraph.owlapi.OwlRelationships;
 public class ClosureTest extends GolrLoadSetup {
 
   @Test
-  public void closure_areReturned() {
+  public void closures_areReturned() {
     DirectedRelationshipType type = new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING);
     Set<DirectedRelationshipType> types = newHashSet(type);
     Closure closure = closureUtil.getClosure(c, types);
