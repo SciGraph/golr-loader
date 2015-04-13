@@ -52,8 +52,8 @@ public class GolrLoadSetup extends GraphTestBase {
       assn.createRelationshipTo(assnParent, OwlRelationships.RDFS_SUBCLASS_OF);
       Node evidence = createNode("http://x.org/a_evidence");
       assn.createRelationshipTo(evidence, DynamicRelationshipType.withName("evidence"));
-      assn.createRelationshipTo(d, DynamicRelationshipType.withName("subject"));
-      assn.createRelationshipTo(e, DynamicRelationshipType.withName("object"));
+      assn.createRelationshipTo(d, DynamicRelationshipType.withName("hasSubject"));
+      assn.createRelationshipTo(e, DynamicRelationshipType.withName("hasObject"));
       tx.success();
     }
   }
