@@ -1,5 +1,7 @@
 package org.monarch.golr;
 
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.io.IOException;
 import java.io.StringWriter;
 
@@ -10,6 +12,8 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+
+import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 
 public class ResultSerializerTest extends GolrLoadSetup {
 
@@ -61,7 +65,7 @@ public class ResultSerializerTest extends GolrLoadSetup {
   @Test
   public void serializeNodeWithDynamicType() throws Exception {
     a.createRelationshipTo(b, DynamicRelationshipType.withName("hasPart"));
-    serializer.serialize("node$hasPart-IN", b);
+    serializer.serialize("node", b, newHashSet(new DirectedRelationshipType("hasPart", "INCOMING")));
     JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), false);
   }
 

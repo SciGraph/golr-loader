@@ -14,6 +14,12 @@ public class GolrCypherQuery {
   private Multimap<String, DirectedRelationshipType> types = HashMultimap.create();
   private Map<String, String> projection = new HashMap<>();
 
+  GolrCypherQuery() {}
+  
+  public GolrCypherQuery(String query) {
+    this.query = query;
+  }
+
   public String getQuery() {
     return query;
   }

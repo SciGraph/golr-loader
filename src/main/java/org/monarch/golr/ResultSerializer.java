@@ -57,22 +57,21 @@ class ResultSerializer {
     generator.writeEndArray();
   }
 
-  static String getFieldname(String fieldName) {
-    return fieldName.contains("$") ? fieldName.substring(0, fieldName.indexOf('$')) : fieldName;
-  }
-
-  void serialize(String fieldName, Node value) throws IOException {
+  void serialize(String fieldName, Node value, Collection<DirectedRelationshipType> types) throws IOException {
     String iri = GraphUtil.getProperty(value, CommonProperties.URI, String.class).get();
     Optional<String> curie = curieUtil.getCurie(iri);
-    fieldName = getFieldname(fieldName);
     generator.writeStringField(fieldName + ID_SUFFIX , curie.or(iri));
     Collection<String> labels = GraphUtil.getProperties(value, NodeProperties.LABEL, String.class);
     if (!labels.isEmpty()) {
       generator.writeStringField(fieldName + LABEL_SUFFIX, getFirst(labels, ""));
     }
-    Closure closure = closureUtil.getClosure(value, DEFAULT_CLOSURE_TYPES);
+    Closure closure = closureUtil.getClosure(value, types);
     writeArray(fieldName + ID_CLOSURE_SUFFIX, closure.getCuries());
     writeArray(fieldName + LABEL_CLOSURE_SUFFIX, closure.getLabels());
+  }
+  
+  void serialize(String fieldName, Node value) throws IOException {
+    serialize(fieldName, value, DEFAULT_CLOSURE_TYPES);
   }
 
   void serialize(String fieldName, String value) throws IOException {
