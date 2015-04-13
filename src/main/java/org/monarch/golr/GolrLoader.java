@@ -9,6 +9,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -25,10 +26,7 @@ import edu.sdsc.scigraph.internal.TinkerGraphUtil;
 public class GolrLoader {
 
   private static String EVIDENCE_GRAPH = "evidence_graph";
-  private static String EVIDENCE_IDS = "evidence_ids";
-  private static String EVIDENCE_LABELS = "evidence_labels";
-  private static String EVIDENCE_IDS_CLOSURE = "evidence_ids_closure";
-  private static String EVIDENCE_LABELS_CLOSURE = "evidence_labels_closure";
+  private static String EVIDENCE_FIELD = "evidence";
   
   private final GraphDatabaseService graphDb;
   private final ResultSerializerFactory factory;
@@ -69,6 +67,12 @@ public class GolrLoader {
       }
       processor.addAssociations(evidenceGraph);
       serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+      Closure closure = processor.getEvidenceIds(evidenceGraph, ignoredNodes);
+      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_SUFFIX, closure.getCuries());
+      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_SUFFIX, closure.getLabels());
+      closure = processor.entailEvidence(evidenceGraph, ignoredNodes);
+      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_CLOSURE_SUFFIX, closure.getCuries());
+      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_CLOSURE_SUFFIX, closure.getLabels());
       generator.writeEndObject();
     }
     generator.writeEndArray();

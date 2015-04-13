@@ -26,10 +26,10 @@ import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
 
 class ResultSerializer {
 
-  private static final String ID_SUFFIX = "_id";
-  private static final String ID_CLOSURE_SUFFIX = "_id_closure";
-  private static final String LABEL_SUFFIX = "_label";
-  private static final String LABEL_CLOSURE_SUFFIX = "_label_closure";
+  static final String ID_SUFFIX = "_id";
+  static final String ID_CLOSURE_SUFFIX = "_id_closure";
+  static final String LABEL_SUFFIX = "_label";
+  static final String LABEL_CLOSURE_SUFFIX = "_label_closure";
 
   private static final DirectedRelationshipType SUBCLASS =
       new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING);
