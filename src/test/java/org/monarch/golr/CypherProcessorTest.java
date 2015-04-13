@@ -33,7 +33,7 @@ public class CypherProcessorTest {
   public void getAliasedProjection() {
     assertThat(CypherProcessor.getProjection("MATCH (m)-[r]-(n) RETURN m AS M, n"), containsInAnyOrder("M", "n"));
   }
-  
+
   @Test
   public void getMixedCaseProjection() {
     assertThat(CypherProcessor.getProjection("MATCH (m)-[r]-(n) rETuRn m As M, n"), containsInAnyOrder("M", "n"));

@@ -4,16 +4,12 @@ import static com.google.common.collect.Iterables.getFirst;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
 import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.Node;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -42,9 +38,6 @@ class ResultSerializer {
   private static final Collection<DirectedRelationshipType> DEFAULT_CLOSURE_TYPES =
       ImmutableSet.of(SUBCLASS, TYPE);
 
-  private static final String FIELD_REGEX = "(.*)\\$(.*)-(IN|OUT)";
-  private static final Pattern FIELD_PATTERN = Pattern.compile(FIELD_REGEX);
-
   private final JsonGenerator generator;
   private final ClosureUtil closureUtil;
   private final CurieUtil curieUtil;
@@ -68,29 +61,8 @@ class ResultSerializer {
     return fieldName.contains("$") ? fieldName.substring(0, fieldName.indexOf('$')) : fieldName;
   }
 
-  static Collection<DirectedRelationshipType> getRelationship(String fieldName) {
-    Collection<DirectedRelationshipType> types = new HashSet<>();
-    Matcher matcher = FIELD_PATTERN.matcher(fieldName);
-    if (matcher.matches()) {
-      Direction direction;
-      switch (matcher.group(3)) {
-        case "IN":
-          direction = Direction.INCOMING;
-          break;
-        case "OUT":
-          direction = Direction.OUTGOING;
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown direction " + matcher.group(3));
-      }
-      types.add(new DirectedRelationshipType(DynamicRelationshipType.withName(matcher.group(2)), direction));
-    }
-    return types;
-  }
-
   void serialize(String fieldName, Node value) throws IOException {
     String iri = GraphUtil.getProperty(value, CommonProperties.URI, String.class).get();
-    Collection<DirectedRelationshipType> types = getRelationship(fieldName);
     Optional<String> curie = curieUtil.getCurie(iri);
     fieldName = getFieldname(fieldName);
     generator.writeStringField(fieldName + ID_SUFFIX , curie.or(iri));
@@ -98,10 +70,7 @@ class ResultSerializer {
     if (!labels.isEmpty()) {
       generator.writeStringField(fieldName + LABEL_SUFFIX, getFirst(labels, ""));
     }
-    if (types.isEmpty()) {
-      types.addAll(DEFAULT_CLOSURE_TYPES);
-    }
-    Closure closure = closureUtil.getClosure(value, types);
+    Closure closure = closureUtil.getClosure(value, DEFAULT_CLOSURE_TYPES);
     writeArray(fieldName + ID_CLOSURE_SUFFIX, closure.getCuries());
     writeArray(fieldName + LABEL_CLOSURE_SUFFIX, closure.getLabels());
   }
