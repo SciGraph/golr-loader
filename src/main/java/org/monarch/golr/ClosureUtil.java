@@ -1,6 +1,7 @@
 package org.monarch.golr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.getFirst;
 
 import java.util.Collection;
 
@@ -40,11 +41,13 @@ class ClosureUtil {
     }
     for (Path path: description.traverse(checkNotNull(start))) {
       Node endNode = path.endNode();
-      Optional<String> curie = curieUtil.getCurie((String)endNode.getProperty(CommonProperties.URI));
+      String iri = (String)endNode.getProperty(CommonProperties.URI);
+      Optional<String> curie = curieUtil.getCurie(iri);
       if (curie.isPresent()) {
-        closure.getCuries().add(curie.get());
+        closure.getCuries().add(curie.or(iri));
       }
-      closure.getLabels().addAll(GraphUtil.getProperties(endNode, NodeProperties.LABEL, String.class));
+      String label = getFirst(GraphUtil.getProperties(endNode, NodeProperties.LABEL, String.class), curie.or(iri));
+      closure.getLabels().add(label);
     }
     return closure;
   }

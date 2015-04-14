@@ -21,10 +21,10 @@ public class ClosureTest extends GolrLoadSetup {
     Set<DirectedRelationshipType> types = newHashSet(type);
     Closure closure = closureUtil.getClosure(c, types);
     assertThat(closure.getCuries(), contains("X:c", "X:b", "X:a"));
-    assertThat(closure.getLabels(), contains("C", "A"));
+    assertThat(closure.getLabels(), contains("C", "X:b", "A"));
     closure = closureUtil.getClosure(b, types);
     assertThat(closure.getCuries(), contains("X:b", "X:a"));
-    assertThat(closure.getLabels(), contains("A"));
+    assertThat(closure.getLabels(), contains("X:b", "A"));
     closure = closureUtil.getClosure(a, types);
     assertThat(closure.getCuries(), contains("X:a"));
     assertThat(closure.getLabels(), contains("A"));
@@ -37,7 +37,7 @@ public class ClosureTest extends GolrLoadSetup {
     Set<DirectedRelationshipType> types = newHashSet(type1, type2);
     Closure closure = closureUtil.getClosure(d, types);
     assertThat(closure.getCuries(), contains("X:d", "X:c", "X:b", "X:a"));
-    assertThat(closure.getLabels(), contains("C", "A"));
+    assertThat(closure.getLabels(), contains("X:d", "C", "X:b", "A"));
   }
 
 }
