@@ -20,6 +20,7 @@ import edu.sdsc.scigraph.frames.CommonProperties;
 import edu.sdsc.scigraph.frames.NodeProperties;
 import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 import edu.sdsc.scigraph.neo4j.GraphUtil;
+import edu.sdsc.scigraph.owlapi.OwlLabels;
 import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
 
 class ClosureUtil {
@@ -41,6 +42,9 @@ class ClosureUtil {
     }
     for (Path path: description.traverse(checkNotNull(start))) {
       Node endNode = path.endNode();
+      if (endNode.hasLabel(OwlLabels.OWL_ANONYMOUS)) {
+        continue;
+      }
       String iri = (String)endNode.getProperty(CommonProperties.URI);
       Optional<String> curie = curieUtil.getCurie(iri);
       if (curie.isPresent()) {
