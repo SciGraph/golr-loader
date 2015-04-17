@@ -62,9 +62,7 @@ class EvidenceProcessor {
       String iri = vertex.getProperty(CommonProperties.URI);
       closure.getCuries().add(curieUtil.getCurie(iri).or(iri));
       Collection<String> possibleLabels = TinkerGraphUtil.getProperties(vertex, NodeProperties.LABEL, String.class);
-      if (!possibleLabels.isEmpty()) {
-        closure.getLabels().add(getFirst(possibleLabels, null));
-      }
+      closure.getLabels().add(getFirst(possibleLabels, curieUtil.getCurie(iri).or(iri)));
     }
     return closure;
   }
