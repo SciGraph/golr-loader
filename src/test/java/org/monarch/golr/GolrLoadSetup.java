@@ -39,6 +39,7 @@ public class GolrLoadSetup extends GraphTestBase {
       Relationship r3 = addRelationship("http://x.org/a_c", "http://x.org/a_d", OwlRelationships.RDF_TYPE);
       Relationship r4 = addRelationship("http://x.org/a_e", "http://x.org/a_d", DynamicRelationshipType.withName("CAUSES"));
       Relationship r5 = addRelationship("http://x.org/a_f", "http://x.org/a_e", DynamicRelationshipType.withName("partOf"));
+      addRelationship("_:anon", "http://x.org/a_b", OwlRelationships.RDFS_SUBCLASS_OF);
       r1.getEndNode().setProperty(NodeProperties.LABEL, "A");
       r2.getStartNode().setProperty(NodeProperties.LABEL, "C");
       a = r1.getEndNode();
