@@ -26,7 +26,7 @@ import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
 
 class ResultSerializer {
 
-  static final String ID_SUFFIX = "_id";
+  static final String ID_SUFFIX = "";
   static final String ID_CLOSURE_SUFFIX = "_closure";
   static final String LABEL_SUFFIX = "_label";
   static final String LABEL_CLOSURE_SUFFIX = "_closure_label";
