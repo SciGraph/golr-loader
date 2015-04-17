@@ -1,13 +1,13 @@
 [
 	{
-		"thing_id":"X:d",
+		"thing":"X:d",
 		"thing_closure":["X:d","X:c","X:b","X:a"],
 		"thing_closure_label":["X:d", "C", "X:b", "A"],
-		"otherThing_id":"X:e",
+		"otherThing":"X:e",
 		"otherThing_closure":["X:e"],
 		"otherThing_closure_label":["X:e"],
 		"evidence_graph":"foo",
-		"evidence_id":[],
+		"evidence":[],
 		"evidence_label":[],
 		"evidence_closure":[],
 		"evidence_closure_label":[]

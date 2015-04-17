@@ -1,5 +1,5 @@
 {
-  "node_id": "X:b",
+  "node": "X:b",
   "node_closure": ["X:b", "X:a"],
   "node_closure_label": ["X:b", "A"]
 }
