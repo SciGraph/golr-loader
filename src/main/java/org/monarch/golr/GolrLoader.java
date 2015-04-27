@@ -55,6 +55,9 @@ public class GolrLoader {
         }
         if (query.getProjection().keySet().contains(entry.getKey())) {
           String alias = query.getProjection().get(entry.getKey());
+          if (null == entry.getValue()) {
+            continue;
+          }
           ignoredNodes.add(((Node)entry.getValue()).getId());
           if (query.getCollectedTypes().containsKey(entry.getKey())) {
             serializer.serialize(alias, (Node)entry.getValue(), query.getCollectedTypes().get(entry.getKey()));
