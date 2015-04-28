@@ -13,6 +13,7 @@ import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Result;
 
@@ -64,12 +65,18 @@ public class GolrLoader {
           } else {
             serializer.serialize(alias, entry.getValue());
           }
+        } else if (entry.getValue() instanceof Path) {
+          TinkerGraphUtil.addPath(evidenceGraph, (Path) entry.getValue());
         } else if (!(entry.getValue() instanceof PropertyContainer)) {
+          //System.out.println(entry.getKey() + " " + entry.getValue());
+          if (null == entry.getValue()) {
+            continue;
+          }
           serializer.serialize(entry.getKey(), entry.getValue());
         }
       }
       processor.addAssociations(evidenceGraph);
-      serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+      //serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
       Closure closure = processor.getEvidenceIds(evidenceGraph, ignoredNodes);
       serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_SUFFIX, closure.getCuries());
       serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_SUFFIX, closure.getLabels());

@@ -114,6 +114,8 @@ class ResultSerializer {
       serialize(fieldName, (Float)value);
     } else if (value instanceof Double) {
       serialize(fieldName, (Double)value);
+    } else {
+      throw new IllegalArgumentException("Don't know how to serialize " + value.getClass());
     }
   }
 

@@ -4,10 +4,15 @@ import static com.google.common.collect.Sets.newHashSet;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Collections;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.neo4j.graphdb.DynamicRelationshipType;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.Result;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -16,6 +21,9 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 
 public class ResultSerializerTest extends GolrLoadSetup {
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   StringWriter writer = new StringWriter();
   ResultSerializer serializer;
@@ -46,6 +54,12 @@ public class ResultSerializerTest extends GolrLoadSetup {
   }
 
   @Test
+  public void serializeUnknownType() throws Exception {
+    exception.expect(IllegalArgumentException.class);
+    serializer.serialize("foo", Collections.emptySet());
+  }
+
+  @Test
   public void serializeObjectTypes() throws Exception {
     serializer.serialize("string", (Object)"foo");
     serializer.serialize("boolean", (Object)true);
@@ -67,6 +81,14 @@ public class ResultSerializerTest extends GolrLoadSetup {
     a.createRelationshipTo(b, DynamicRelationshipType.withName("hasPart"));
     serializer.serialize("node", b, newHashSet(new DirectedRelationshipType("hasPart", "INCOMING")));
     JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), false);
+  }
+
+  @Test
+  public void serializePath() throws Exception {
+    Result result = graphDb.execute("MATCH path = (start)-[]->(end {label: 'A'}) RETURN path");
+    Path path = (Path) result.next().get("path");
+    serializer.serialize("subject", path);
+    System.out.println(getActual());
   }
 
 }
