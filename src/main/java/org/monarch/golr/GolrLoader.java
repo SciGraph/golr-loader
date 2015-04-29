@@ -28,7 +28,7 @@ public class GolrLoader {
 
   private static String EVIDENCE_GRAPH = "evidence_graph";
   private static String EVIDENCE_FIELD = "evidence";
-  
+
   private final GraphDatabaseService graphDb;
   private final ResultSerializerFactory factory;
   private final EvidenceProcessor processor;
