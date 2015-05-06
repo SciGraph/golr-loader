@@ -76,7 +76,7 @@ public class GolrLoader {
         }
       }
       processor.addAssociations(evidenceGraph);
-      //serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+      serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
       Closure closure = processor.getEvidenceIds(evidenceGraph, ignoredNodes);
       serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_SUFFIX, closure.getCuries());
       serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_SUFFIX, closure.getLabels());

@@ -83,12 +83,4 @@ public class ResultSerializerTest extends GolrLoadSetup {
     JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), false);
   }
 
-  @Test
-  public void serializePath() throws Exception {
-    Result result = graphDb.execute("MATCH path = (start)-[]->(end {label: 'A'}) RETURN path");
-    Path path = (Path) result.next().get("path");
-    serializer.serialize("subject", path);
-    System.out.println(getActual());
-  }
-
 }
