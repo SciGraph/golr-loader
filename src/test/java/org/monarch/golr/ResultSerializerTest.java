@@ -11,8 +11,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.neo4j.graphdb.DynamicRelationshipType;
-import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Result;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.core.JsonFactory;
