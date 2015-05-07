@@ -47,9 +47,7 @@ class ClosureUtil {
       }
       String iri = (String)endNode.getProperty(CommonProperties.URI);
       Optional<String> curie = curieUtil.getCurie(iri);
-      if (curie.isPresent()) {
-        closure.getCuries().add(curie.or(iri));
-      }
+      closure.getCuries().add(curie.or(iri));
       String label = getFirst(GraphUtil.getProperties(endNode, NodeProperties.LABEL, String.class), curie.or(iri));
       closure.getLabels().add(label);
     }

@@ -5,6 +5,9 @@ import java.util.List;
 
 import com.google.common.base.MoreObjects;
 
+/***
+ * A convenience class encapsulating a closure pair.
+ */
 public class Closure {
 
   private final List<String> curies = new ArrayList<>();

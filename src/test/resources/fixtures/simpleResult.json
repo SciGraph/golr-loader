@@ -1,9 +1,11 @@
 [
 	{
 		"thing":"X:d",
+		"thing_label":"",
 		"thing_closure":["X:d","X:c","X:b","X:a"],
 		"thing_closure_label":["X:d", "C", "X:b", "A"],
 		"otherThing":"X:e",
+		"otherThing_label":"",
 		"otherThing_closure":["X:e"],
 		"otherThing_closure_label":["X:e"],
 		"evidence_graph":"foo",

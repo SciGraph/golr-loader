@@ -1,6 +1,7 @@
 [
   {
     "relationship": "X:causes",
+    "relationship_label": "",
     "relationship_closure": [
       "X:causes", "X:causes_parent"
     ],

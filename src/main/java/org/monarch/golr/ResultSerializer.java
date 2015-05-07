@@ -64,9 +64,7 @@ class ResultSerializer {
     Optional<String> curie = curieUtil.getCurie(iri);
     generator.writeStringField(fieldName + ID_SUFFIX , curie.or(iri));
     Collection<String> labels = GraphUtil.getProperties(value, NodeProperties.LABEL, String.class);
-    if (!labels.isEmpty()) {
-      generator.writeStringField(fieldName + LABEL_SUFFIX, getFirst(labels, ""));
-    }
+    generator.writeStringField(fieldName + LABEL_SUFFIX, getFirst(labels, ""));
     Closure closure = closureUtil.getClosure(value, types);
     writeArray(fieldName + ID_CLOSURE_SUFFIX, closure.getCuries());
     writeArray(fieldName + LABEL_CLOSURE_SUFFIX, closure.getLabels());
