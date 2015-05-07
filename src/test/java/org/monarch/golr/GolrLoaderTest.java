@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.skyscreamer.jsonassert.JSONAssert;
 
+import edu.sdsc.scigraph.internal.CypherUtil;
 import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 
 public class GolrLoaderTest extends GolrLoadSetup {
@@ -18,7 +19,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
   @Before
   public void setup() {
     EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
-    processor = new GolrLoader(graphDb, graph, new ResultSerializerFactoryTestImpl(), stub);
+    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb), new ResultSerializerFactoryTestImpl(), stub);
   }
 
   @Test

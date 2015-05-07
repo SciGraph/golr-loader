@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 
 import edu.sdsc.scigraph.frames.CommonProperties;
+import edu.sdsc.scigraph.internal.CypherUtil;
 import edu.sdsc.scigraph.internal.TinkerGraphUtil;
 import edu.sdsc.scigraph.neo4j.Graph;
 import edu.sdsc.scigraph.neo4j.GraphUtil;
@@ -36,17 +37,19 @@ public class GolrLoader {
   private final ResultSerializerFactory factory;
   private final EvidenceProcessor processor;
   private final Graph graph;
+  private final CypherUtil cypherUtil;
 
   @Inject
-  GolrLoader(GraphDatabaseService graphDb, Graph graph, ResultSerializerFactory factory, EvidenceProcessor processor) {
+  GolrLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil, ResultSerializerFactory factory, EvidenceProcessor processor) {
     this.graphDb = graphDb;
+    this.cypherUtil = cypherUtil;
     this.graph = graph;
     this.factory = factory;
     this.processor = processor;
   }
 
   void process(GolrCypherQuery query, Writer writer) throws IOException {
-    Result result = graphDb.execute(query.getQuery());
+    Result result = cypherUtil.execute(query.getQuery());
     JsonGenerator generator = new JsonFactory().createGenerator(writer);
     ResultSerializer serializer = factory.create(generator);
     generator.writeStartArray();
