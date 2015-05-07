@@ -15,14 +15,17 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Result;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 
+import edu.sdsc.scigraph.frames.CommonProperties;
 import edu.sdsc.scigraph.internal.TinkerGraphUtil;
+import edu.sdsc.scigraph.neo4j.Graph;
+import edu.sdsc.scigraph.neo4j.GraphUtil;
 
 public class GolrLoader {
 
@@ -32,10 +35,12 @@ public class GolrLoader {
   private final GraphDatabaseService graphDb;
   private final ResultSerializerFactory factory;
   private final EvidenceProcessor processor;
+  private final Graph graph;
 
   @Inject
-  GolrLoader(GraphDatabaseService graphDb, ResultSerializerFactory factory, EvidenceProcessor processor) {
+  GolrLoader(GraphDatabaseService graphDb, Graph graph, ResultSerializerFactory factory, EvidenceProcessor processor) {
     this.graphDb = graphDb;
+    this.graph = graph;
     this.factory = factory;
     this.processor = processor;
   }
@@ -48,7 +53,7 @@ public class GolrLoader {
     while (result.hasNext()) {
       generator.writeStartObject();
       Map<String, Object> row = result.next();
-      Graph evidenceGraph = new TinkerGraph();
+      com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
       Set<Long> ignoredNodes = new HashSet<>();
       for (Entry<String, Object> entry: row.entrySet()) {
         if (entry.getValue() instanceof PropertyContainer) {
@@ -59,9 +64,15 @@ public class GolrLoader {
           if (null == entry.getValue()) {
             continue;
           }
-          ignoredNodes.add(((Node)entry.getValue()).getId());
+          if (entry.getValue() instanceof Node) {
+            ignoredNodes.add(((Node)entry.getValue()).getId());
+          }
           if (query.getCollectedTypes().containsKey(entry.getKey())) {
             serializer.serialize(alias, (Node)entry.getValue(), query.getCollectedTypes().get(entry.getKey()));
+          } else if (entry.getValue() instanceof Relationship) {
+            String objectPropertyIri = GraphUtil.getProperty((Relationship)entry.getValue(), CommonProperties.URI, String.class).get();
+            Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
+            serializer.serialize(alias, objectProperty);
           } else {
             serializer.serialize(alias, entry.getValue());
           }

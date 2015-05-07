@@ -18,7 +18,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
   @Before
   public void setup() {
     EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
-    processor = new GolrLoader(graphDb, new ResultSerializerFactoryTestImpl(), stub);
+    processor = new GolrLoader(graphDb, graph, new ResultSerializerFactoryTestImpl(), stub);
   }
 
   @Test
@@ -35,6 +35,14 @@ public class GolrLoaderTest extends GolrLoadSetup {
     query.getProjection().put("end", "otherThing");
     processor.process(query, writer);
     JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), true);
+  }
+
+  @Test
+  public void relationshipClosureSerialization() throws Exception {
+    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[c:CAUSES]->(end) RETURN *");
+    query.getProjection().put("c", "relationship");
+    processor.process(query, writer);
+    JSONAssert.assertEquals(getFixture("fixtures/relationshipResult.json"), writer.toString(), true);
   }
 
   @Test

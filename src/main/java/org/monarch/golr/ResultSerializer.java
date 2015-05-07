@@ -35,8 +35,10 @@ class ResultSerializer {
       new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING);
   private static final DirectedRelationshipType TYPE = 
       new DirectedRelationshipType(OwlRelationships.RDF_TYPE, Direction.OUTGOING);
+  private static final DirectedRelationshipType SUBPROPERTY = 
+      new DirectedRelationshipType(OwlRelationships.RDFS_SUB_PROPERTY_OF, Direction.OUTGOING);
   static final Collection<DirectedRelationshipType> DEFAULT_CLOSURE_TYPES =
-      ImmutableSet.of(SUBCLASS, TYPE);
+      ImmutableSet.of(SUBCLASS, TYPE, SUBPROPERTY);
 
   private final JsonGenerator generator;
   private final ClosureUtil closureUtil;
