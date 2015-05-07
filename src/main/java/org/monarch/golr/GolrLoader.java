@@ -9,6 +9,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import org.apache.commons.lang3.ClassUtils;
 import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -59,34 +60,40 @@ public class GolrLoader {
       com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
       Set<Long> ignoredNodes = new HashSet<>();
       for (Entry<String, Object> entry: row.entrySet()) {
-        if (entry.getValue() instanceof PropertyContainer) {
-          TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) entry.getValue());
+        String key = entry.getKey();
+        Object value = entry.getValue();
+
+        if (null == value) {
+          continue;
         }
-        if (query.getProjection().keySet().contains(entry.getKey())) {
-          String alias = query.getProjection().get(entry.getKey());
-          if (null == entry.getValue()) {
-            continue;
+
+        // Add evidence
+        if (value instanceof PropertyContainer) {
+          TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
+        } else if (value instanceof Path) {
+          TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
+        } 
+
+        // Add any projections
+        if (query.getProjection().keySet().contains(key)) {
+          String alias = query.getProjection().get(key);
+          if (value instanceof Node) { // Don't include projected nodes in the evidence closure
+            ignoredNodes.add(((Node)value).getId());
           }
-          if (entry.getValue() instanceof Node) {
-            ignoredNodes.add(((Node)entry.getValue()).getId());
-          }
-          if (query.getCollectedTypes().containsKey(entry.getKey())) {
-            serializer.serialize(alias, (Node)entry.getValue(), query.getCollectedTypes().get(entry.getKey()));
-          } else if (entry.getValue() instanceof Relationship) {
-            String objectPropertyIri = GraphUtil.getProperty((Relationship)entry.getValue(), CommonProperties.URI, String.class).get();
+          
+          if (query.getCollectedTypes().containsKey(key)) {
+            serializer.serialize(alias, (Node) value, query.getCollectedTypes().get(key));
+          } else if (value instanceof Relationship) {
+            String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.URI, String.class).get();
             Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
             serializer.serialize(alias, objectProperty);
           } else {
-            serializer.serialize(alias, entry.getValue());
+            serializer.serialize(alias, value);
           }
-        } else if (entry.getValue() instanceof Path) {
-          TinkerGraphUtil.addPath(evidenceGraph, (Path) entry.getValue());
-        } else if (!(entry.getValue() instanceof PropertyContainer)) {
-          //System.out.println(entry.getKey() + " " + entry.getValue());
-          if (null == entry.getValue()) {
-            continue;
-          }
-          serializer.serialize(entry.getKey(), entry.getValue());
+        } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) ||
+                  value instanceof String) {
+          // Serialize primitive types and Strings
+          serializer.serialize(key, value);
         }
       }
       processor.addAssociations(evidenceGraph);
