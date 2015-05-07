@@ -1,0 +1,16 @@
+[
+  {
+    "relationship": "X:causes",
+    "relationship_closure": [
+      "X:causes", "X:causes_parent"
+    ],
+    "relationship_closure_label": [
+      "X:causes", "X:causes_parent"
+    ],
+    "evidence_graph": "foo",
+    "evidence": [],
+    "evidence_label": [],
+    "evidence_closure": [],
+    "evidence_closure_label": []
+  }
+]
