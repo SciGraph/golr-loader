@@ -4,27 +4,25 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
-import edu.sdsc.scigraph.neo4j.Neo4jConfiguration;
 
 public class GolrCypherQuery {
 
-  private Neo4jConfiguration neo4jConfiguration;
   private String query;
   private Multimap<String, DirectedRelationshipType> types = HashMultimap.create();
   private Map<String, String> projection = new HashMap<>();
+  private Optional<String> solrServer = Optional.absent();
+  private Optional<String> outputFile = Optional.absent();
 
   GolrCypherQuery() {}
 
   public GolrCypherQuery(String query) {
     this.query = query;
-  }
-
-  public Neo4jConfiguration getNeo4jConfiguration() {
-    return neo4jConfiguration;
   }
 
   public String getQuery() {
@@ -41,6 +39,28 @@ public class GolrCypherQuery {
 
   public Map<String, String> getProjection() {
     return projection;
+  }
+
+  public Optional<String> getSolrServer() {
+    return solrServer;
+  }
+
+  public Optional<String> getOutputFile() {
+    return outputFile;
+  }
+
+  public void setOutputFile(Optional<String> outputFile) {
+    this.outputFile = outputFile;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("query", query)
+        .add("types", types)
+        .add("output", outputFile)
+        .add("projection", projection)
+        .toString();
   }
 
 }

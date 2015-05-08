@@ -18,6 +18,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -50,64 +51,67 @@ public class GolrLoader {
   }
 
   void process(GolrCypherQuery query, Writer writer) throws IOException {
-    Result result = cypherUtil.execute(query.getQuery());
-    JsonGenerator generator = new JsonFactory().createGenerator(writer);
-    ResultSerializer serializer = factory.create(generator);
-    generator.writeStartArray();
-    while (result.hasNext()) {
-      generator.writeStartObject();
-      Map<String, Object> row = result.next();
-      com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
-      Set<Long> ignoredNodes = new HashSet<>();
-      for (Entry<String, Object> entry: row.entrySet()) {
-        String key = entry.getKey();
-        Object value = entry.getValue();
+    try (Transaction tx = graphDb.beginTx()) {
+      Result result = cypherUtil.execute(query.getQuery());
+      JsonGenerator generator = new JsonFactory().createGenerator(writer);
+      ResultSerializer serializer = factory.create(generator);
+      generator.writeStartArray();
+      while (result.hasNext()) {
+        generator.writeStartObject();
+        Map<String, Object> row = result.next();
+        com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
+        Set<Long> ignoredNodes = new HashSet<>();
+        for (Entry<String, Object> entry: row.entrySet()) {
+          String key = entry.getKey();
+          Object value = entry.getValue();
 
-        if (null == value) {
-          continue;
-        }
-
-        // Add evidence
-        if (value instanceof PropertyContainer) {
-          TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
-        } else if (value instanceof Path) {
-          TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
-        } 
-
-        // Add any projections
-        if (query.getProjection().keySet().contains(key)) {
-          String alias = query.getProjection().get(key);
-          if (value instanceof Node) { // Don't include projected nodes in the evidence closure
-            ignoredNodes.add(((Node)value).getId());
+          if (null == value) {
+            continue;
           }
-          
-          if (query.getCollectedTypes().containsKey(key)) {
-            serializer.serialize(alias, (Node) value, query.getCollectedTypes().get(key));
-          } else if (value instanceof Relationship) {
-            String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.URI, String.class).get();
-            Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
-            serializer.serialize(alias, objectProperty);
-          } else {
-            serializer.serialize(alias, value);
+
+          // Add evidence
+          if (value instanceof PropertyContainer) {
+            TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
+          } else if (value instanceof Path) {
+            TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
+          } 
+
+          // Add any projections
+          if (query.getProjection().keySet().contains(key)) {
+            String alias = query.getProjection().get(key);
+            if (value instanceof Node) { // Don't include projected nodes in the evidence closure
+              ignoredNodes.add(((Node)value).getId());
+            }
+
+            if (query.getCollectedTypes().containsKey(key)) {
+              serializer.serialize(alias, (Node) value, query.getCollectedTypes().get(key));
+            } else if (value instanceof Relationship) {
+              String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.URI, String.class).get();
+              Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
+              serializer.serialize(alias, objectProperty);
+            } else {
+              serializer.serialize(alias, value);
+            }
+          } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) ||
+              value instanceof String) {
+            // Serialize primitive types and Strings
+            serializer.serialize(key, value);
           }
-        } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) ||
-                  value instanceof String) {
-          // Serialize primitive types and Strings
-          serializer.serialize(key, value);
         }
+        processor.addAssociations(evidenceGraph);
+        serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+        Closure closure = processor.getEvidenceIds(evidenceGraph, ignoredNodes);
+        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_SUFFIX, closure.getCuries());
+        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_SUFFIX, closure.getLabels());
+        closure = processor.entailEvidence(evidenceGraph, ignoredNodes);
+        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_CLOSURE_SUFFIX, closure.getCuries());
+        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_CLOSURE_SUFFIX, closure.getLabels());
+        generator.writeEndObject();
       }
-      processor.addAssociations(evidenceGraph);
-      serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
-      Closure closure = processor.getEvidenceIds(evidenceGraph, ignoredNodes);
-      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_SUFFIX, closure.getCuries());
-      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_SUFFIX, closure.getLabels());
-      closure = processor.entailEvidence(evidenceGraph, ignoredNodes);
-      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_CLOSURE_SUFFIX, closure.getCuries());
-      serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_CLOSURE_SUFFIX, closure.getLabels());
-      generator.writeEndObject();
+      generator.writeEndArray();
+      generator.close();
+      tx.success();
     }
-    generator.writeEndArray();
-    generator.close();
   }
 
 }
