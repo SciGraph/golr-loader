@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Map;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -13,9 +12,7 @@ import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 public class GolrCypherQuery {
 
   private String query;
-  private Multimap<String, DirectedRelationshipType> types = HashMultimap.create();
-  private Optional<String> solrServer = Optional.absent();
-  private Optional<String> outputFile = Optional.absent();
+  private Multimap<String, DirectedRelationshipType> types = HashMultimap.create(); 
 
   GolrCypherQuery() {}
 
@@ -35,24 +32,11 @@ public class GolrCypherQuery {
     return types.asMap();
   }
 
-  public Optional<String> getSolrServer() {
-    return solrServer;
-  }
-
-  public Optional<String> getOutputFile() {
-    return outputFile;
-  }
-
-  public void setOutputFile(Optional<String> outputFile) {
-    this.outputFile = outputFile;
-  }
-
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("query", query)
         .add("types", types)
-        .add("output", outputFile)
         .toString();
   }
 

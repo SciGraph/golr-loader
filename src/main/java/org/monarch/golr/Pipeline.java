@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.google.common.base.Optional;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -39,6 +40,8 @@ public class Pipeline {
   private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
 
   private static ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+
+  private static final String SOLR_JSON_URL_SUFFIX = "update/json?commit=true";
 
   static {
     mapper.registerModules(new GuavaModule());
@@ -56,19 +59,37 @@ public class Pipeline {
     OptionBuilder.hasArg(true);
     OptionBuilder.withDescription("The query configuration");
     options.addOption(OptionBuilder.create("q"));
+    OptionBuilder.withLongOpt("solr-server");
+    OptionBuilder.isRequired(false);
+    OptionBuilder.hasArg(true);
+    OptionBuilder.withDescription("An optional Solr server to update");
+    options.addOption(OptionBuilder.create("s"));
+    OptionBuilder.withLongOpt("output");
+    OptionBuilder.isRequired(false);
+    OptionBuilder.hasArg(true);
+    OptionBuilder.withDescription("An optional output file for the JSON");
+    options.addOption(OptionBuilder.create("o"));
     return options;
   }
-  
+
   public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException {
     Options options = getOptions();
     CommandLineParser parser = new GnuParser();
     CommandLine cmd;
     Neo4jConfiguration neo4jConfig = null;
     GolrCypherQuery query = null;
+    Optional<String> solrServer = Optional.absent();
+    Optional<String> outputFile = Optional.absent();
     try {
       cmd = parser.parse(options, args);
       neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
       query = mapper.readValue(new File(cmd.getOptionValue("q")), GolrCypherQuery.class);
+      if (cmd.hasOption("s")) {
+        solrServer = Optional.of(cmd.getOptionValue("s"));
+      }
+      if (cmd.hasOption("o")) {
+        outputFile = Optional.of(cmd.getOptionValue("o"));
+      }
     } catch (ParseException e) {
       new HelpFormatter().printHelp("GolrLoad", options);
       System.exit(-1);
@@ -85,24 +106,26 @@ public class Pipeline {
         });
 
     GolrLoader loader = i.getInstance(GolrLoader.class);
-    File outputFile = null;
-    if (query.getOutputFile().isPresent()) {
-      outputFile = new File(query.getOutputFile().get());
+    File out = null;
+    if (outputFile.isPresent()) {
+      out = new File(outputFile.get());
     } else {
-      outputFile = Files.createTempFile("golr-load", ".json").toFile();
-      outputFile.deleteOnExit();
+      out = Files.createTempFile("golr-load", ".json").toFile();
+      out.deleteOnExit();
     }
-    logger.info("Writing JSON to: " + outputFile.getAbsolutePath());
-    try (FileWriter writer = new FileWriter(outputFile)) {
+    logger.info("Writing JSON to: " + out.getAbsolutePath());
+    try (FileWriter writer = new FileWriter(out)) {
       loader.process(query, writer);
     }
     logger.info("...done");
-    if (query.getSolrServer().isPresent()) {
-      logger.info("Posting JSON to " + query.getSolrServer().get());
+    if (solrServer.isPresent()) {
+      logger.info("Posting JSON to " + solrServer.get());
       try {
         String result = Request
-            .Post(new URI(query.getSolrServer().get()))
-            .bodyFile(outputFile, ContentType.APPLICATION_JSON)
+            .Post(new URI(solrServer.get() +
+                          (solrServer.get().endsWith("/") ? "" : "/") + 
+                          SOLR_JSON_URL_SUFFIX))
+            .bodyFile(out, ContentType.APPLICATION_JSON)
             .execute().returnContent().asString();
         logger.info(result);
       } catch (Exception e) {
