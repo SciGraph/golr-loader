@@ -44,7 +44,7 @@ public class Pipeline {
     mapper.registerModules(new GuavaModule());
   }
 
-  public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException {
+  public static Options getOptions() {
     Options options = new Options();
     OptionBuilder.withLongOpt("graph");
     OptionBuilder.isRequired();
@@ -56,6 +56,11 @@ public class Pipeline {
     OptionBuilder.hasArg(true);
     OptionBuilder.withDescription("The query configuration");
     options.addOption(OptionBuilder.create("q"));
+    return options;
+  }
+  
+  public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException {
+    Options options = getOptions();
     CommandLineParser parser = new GnuParser();
     CommandLine cmd;
     Neo4jConfiguration neo4jConfig = null;

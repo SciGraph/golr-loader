@@ -19,7 +19,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
   @Before
   public void setup() {
     EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
-    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb), new ResultSerializerFactoryTestImpl(), stub);
+    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), new ResultSerializerFactoryTestImpl(), stub);
   }
 
   @Test
@@ -31,27 +31,22 @@ public class GolrLoaderTest extends GolrLoadSetup {
 
   @Test
   public void defaultClosuresSerialize() throws Exception {
-    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[c:CAUSES]->(end) RETURN *");
-    query.getProjection().put("start", "thing");
-    query.getProjection().put("end", "otherThing");
+    GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
     processor.process(query, writer);
     JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), true);
   }
 
   @Test
   public void relationshipClosureSerialization() throws Exception {
-    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[c:CAUSES]->(end) RETURN *");
-    query.getProjection().put("c", "relationship");
+    GolrCypherQuery query = new GolrCypherQuery("MATCH ()-[relationship:CAUSES]->() RETURN *");
     processor.process(query, writer);
     JSONAssert.assertEquals(getFixture("fixtures/relationshipResult.json"), writer.toString(), true);
   }
 
   @Test
   public void customClosuresSerialize() throws Exception {
-    GolrCypherQuery query = new GolrCypherQuery("MATCH (start)-[c:CAUSES]->(end) RETURN *");
-    query.getProjection().put("start", "thing");
-    query.getProjection().put("end", "otherThing");
-    query.getTypes().put("end", new DirectedRelationshipType("partOf", "OUTGOING"));
+    GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
+    query.getTypes().put("otherThing", new DirectedRelationshipType("partOf", "OUTGOING"));
     processor.process(query, writer);
     JSONAssert.assertEquals(getFixture("fixtures/customClosureTypeResult.json"), writer.toString(), true);
   }

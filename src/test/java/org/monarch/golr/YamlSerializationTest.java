@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 
-import org.hamcrest.collection.IsMapContaining;
 import org.junit.Before;
 import org.junit.Test;
 import org.monarch.golr.beans.GolrCypherQuery;
@@ -32,14 +31,11 @@ public class YamlSerializationTest {
   public void test() throws JsonParseException, JsonMappingException, IOException {
     GolrCypherQuery query = mapper.readValue(
         "query: cypher query\n"
-        + "projection:\n"
-        + "  foo: bar\n"
         + "types:\n"
         + "  foo:\n"
         + "    - type: partOf\n"
         + "      direction: OUTGOING\n", GolrCypherQuery.class);
     assertThat(query.getQuery(), is("cypher query"));
-    assertThat(query.getProjection(), IsMapContaining.<String, String>hasEntry("foo", "bar"));
     assertThat(query.getTypes().get("foo"), contains(new DirectedRelationshipType("partOf", "OUTGOING")));
   }
 

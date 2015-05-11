@@ -76,24 +76,20 @@ public class GolrLoader {
             TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
           } 
 
-          // Add any projections
-          if (query.getProjection().keySet().contains(key)) {
-            String alias = query.getProjection().get(key);
-            if (value instanceof Node) { // Don't include projected nodes in the evidence closure
-              ignoredNodes.add(((Node)value).getId());
-            }
+
+          if (value instanceof Node) {
+            ignoredNodes.add(((Node)value).getId());
 
             if (query.getCollectedTypes().containsKey(key)) {
-              serializer.serialize(alias, (Node) value, query.getCollectedTypes().get(key));
-            } else if (value instanceof Relationship) {
-              String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.URI, String.class).get();
-              Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
-              serializer.serialize(alias, objectProperty);
+              serializer.serialize(key, (Node) value, query.getCollectedTypes().get(key));
             } else {
-              serializer.serialize(alias, value);
+              serializer.serialize(key, value);
             }
-          } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) ||
-              value instanceof String) {
+          } else if (value instanceof Relationship) {
+            String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.URI, String.class).get();
+            Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
+            serializer.serialize(key, objectProperty);
+          } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) ||   value instanceof String) {
             // Serialize primitive types and Strings
             serializer.serialize(key, value);
           }

@@ -1,7 +1,6 @@
 package org.monarch.golr.beans;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.base.MoreObjects;
@@ -15,7 +14,6 @@ public class GolrCypherQuery {
 
   private String query;
   private Multimap<String, DirectedRelationshipType> types = HashMultimap.create();
-  private Map<String, String> projection = new HashMap<>();
   private Optional<String> solrServer = Optional.absent();
   private Optional<String> outputFile = Optional.absent();
 
@@ -37,10 +35,6 @@ public class GolrCypherQuery {
     return types.asMap();
   }
 
-  public Map<String, String> getProjection() {
-    return projection;
-  }
-
   public Optional<String> getSolrServer() {
     return solrServer;
   }
@@ -59,7 +53,6 @@ public class GolrCypherQuery {
         .add("query", query)
         .add("types", types)
         .add("output", outputFile)
-        .add("projection", projection)
         .toString();
   }
 
