@@ -50,13 +50,15 @@ public class GolrLoader {
     this.processor = processor;
   }
 
-  void process(GolrCypherQuery query, Writer writer) throws IOException {
+  long process(GolrCypherQuery query, Writer writer) throws IOException {
+    long recordCount = 0;
     try (Transaction tx = graphDb.beginTx()) {
       Result result = cypherUtil.execute(query.getQuery());
       JsonGenerator generator = new JsonFactory().createGenerator(writer);
       ResultSerializer serializer = factory.create(generator);
       generator.writeStartArray();
       while (result.hasNext()) {
+        recordCount++;
         generator.writeStartObject();
         Map<String, Object> row = result.next();
         com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
@@ -68,7 +70,6 @@ public class GolrLoader {
           if (null == value) {
             continue;
           }
-
           // Add evidence
           if (value instanceof PropertyContainer) {
             TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
@@ -108,6 +109,7 @@ public class GolrLoader {
       generator.close();
       tx.success();
     }
+    return recordCount;
   }
 
 }

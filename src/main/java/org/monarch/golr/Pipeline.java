@@ -115,7 +115,8 @@ public class Pipeline {
     }
     logger.info("Writing JSON to: " + out.getAbsolutePath());
     try (FileWriter writer = new FileWriter(out)) {
-      loader.process(query, writer);
+      long recordCount = loader.process(query, writer);
+      logger.info("Wrote " + recordCount +  " documents to: " + out.getAbsolutePath());
     }
     logger.info("...done");
     if (solrServer.isPresent()) {
