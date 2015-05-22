@@ -9,9 +9,9 @@
 		"otherThing_closure":["X:e", "X:f"],
 		"otherThing_closure_label":["X:e", "X:f"],
 		"evidence_graph":"foo",
-		"evidence":[],
-		"evidence_label":[],
-		"evidence_closure":[],
-		"evidence_closure_label":[]
+		"evidence_object":[],
+		"evidence_object_label":[],
+		"evidence_object_closure":[],
+		"evidence_object_closure_label":[]
 	}
 ]

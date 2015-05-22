@@ -33,7 +33,7 @@ import edu.sdsc.scigraph.neo4j.GraphUtil;
 public class GolrLoader {
 
   private static String EVIDENCE_GRAPH = "evidence_graph";
-  private static String EVIDENCE_FIELD = "evidence";
+  private static String EVIDENCE_FIELD = "evidence_object";
 
   private final GraphDatabaseService graphDb;
   private final ResultSerializerFactory factory;
