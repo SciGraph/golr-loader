@@ -14,8 +14,6 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Uniqueness;
 
-import com.google.common.base.Optional;
-
 import edu.sdsc.scigraph.frames.CommonProperties;
 import edu.sdsc.scigraph.frames.NodeProperties;
 import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
@@ -34,22 +32,30 @@ class ClosureUtil {
     this.curieUtil = curieUtil;
   }
 
+  String getCurieOrIri(Node node) {
+    String iri = (String)checkNotNull(node).getProperty(CommonProperties.URI);
+    return curieUtil.getCurie(iri).or(iri);
+  }
+
+  String getLabelOrIri(Node node) {
+    return getFirst(GraphUtil.getProperties(node, NodeProperties.LABEL, String.class), getCurieOrIri(node));
+  }
+
   Closure getClosure(Node start, Collection<DirectedRelationshipType> types) {
     Closure closure = new Closure();
     TraversalDescription description = graphDb.traversalDescription().depthFirst().uniqueness(Uniqueness.NODE_GLOBAL);
     for (DirectedRelationshipType type: checkNotNull(types)) {
       description = description.relationships(type.getType(), type.getDirection());
     }
-    for (Path path: description.traverse(checkNotNull(start))) {
+    closure.setCurie(getCurieOrIri(checkNotNull(start)));
+    closure.setLabel(getLabelOrIri(start));
+    for (Path path: description.traverse(start)) {
       Node endNode = path.endNode();
       if (endNode.hasLabel(OwlLabels.OWL_ANONYMOUS)) {
         continue;
       }
-      String iri = (String)endNode.getProperty(CommonProperties.URI);
-      Optional<String> curie = curieUtil.getCurie(iri);
-      closure.getCuries().add(curie.or(iri));
-      String label = getFirst(GraphUtil.getProperties(endNode, NodeProperties.LABEL, String.class), curie.or(iri));
-      closure.getLabels().add(label);
+      closure.getCuries().add(getCurieOrIri(endNode));
+      closure.getLabels().add(getLabelOrIri(endNode));
     }
     return closure;
   }
