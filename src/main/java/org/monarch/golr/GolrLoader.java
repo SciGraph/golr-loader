@@ -35,6 +35,7 @@ public class GolrLoader {
 
   private static String EVIDENCE_GRAPH = "evidence_graph";
   private static String EVIDENCE_FIELD = "evidence";
+  private static String SOURCE_FIELD = "source";
   private static String EVIDENCE_OBJECT_FIELD = "evidence_object";
 
   private final GraphDatabaseService graphDb;
@@ -52,6 +53,13 @@ public class GolrLoader {
     this.processor = processor;
   }
 
+  static void writeQuad(ResultSerializer serializer, String baseName, Collection<Closure> closures) throws IOException {
+    serializer.writeArray(baseName + ResultSerializer.ID_SUFFIX, ClosureUtil.collectIds(closures));
+    serializer.writeArray(baseName + ResultSerializer.LABEL_SUFFIX, ClosureUtil.collectLabels(closures));
+    serializer.writeArray(baseName + ResultSerializer.ID_CLOSURE_SUFFIX, ClosureUtil.collectIdClosure(closures));
+    serializer.writeArray(baseName + ResultSerializer.LABEL_CLOSURE_SUFFIX, ClosureUtil.collectLabelClosure(closures));
+  }
+  
   long process(GolrCypherQuery query, Writer writer) throws IOException {
     long recordCount = 0;
     try (Transaction tx = graphDb.beginTx()) {
@@ -79,7 +87,6 @@ public class GolrLoader {
             TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
           } 
 
-
           if (value instanceof Node) {
             ignoredNodes.add(((Node)value).getId());
 
@@ -100,15 +107,11 @@ public class GolrLoader {
         processor.addAssociations(evidenceGraph);
         serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
         Collection<Closure> evidenceObjectClosure = processor.getEvidenceObject(evidenceGraph, ignoredNodes);
-        serializer.writeArray(EVIDENCE_OBJECT_FIELD + ResultSerializer.ID_SUFFIX, ClosureUtil.collectIds(evidenceObjectClosure));
-        serializer.writeArray(EVIDENCE_OBJECT_FIELD + ResultSerializer.LABEL_SUFFIX, ClosureUtil.collectLabels(evidenceObjectClosure));
-        serializer.writeArray(EVIDENCE_OBJECT_FIELD + ResultSerializer.ID_CLOSURE_SUFFIX, ClosureUtil.collectIdClosure(evidenceObjectClosure));
-        serializer.writeArray(EVIDENCE_OBJECT_FIELD + ResultSerializer.LABEL_CLOSURE_SUFFIX, ClosureUtil.collectLabelClosure(evidenceObjectClosure));
+        writeQuad(serializer, EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
         Collection<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
-        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_SUFFIX, ClosureUtil.collectIds(evidenceClosure));
-        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_SUFFIX, ClosureUtil.collectLabels(evidenceClosure));
-        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.ID_CLOSURE_SUFFIX, ClosureUtil.collectIdClosure(evidenceClosure));
-        serializer.writeArray(EVIDENCE_FIELD + ResultSerializer.LABEL_CLOSURE_SUFFIX, ClosureUtil.collectLabelClosure(evidenceClosure));
+        writeQuad(serializer, EVIDENCE_FIELD, evidenceClosure);
+        Collection<Closure> sourceClosure = processor.getSource(evidenceGraph);
+        writeQuad(serializer, SOURCE_FIELD, sourceClosure);
         generator.writeEndObject();
       }
       generator.writeEndArray();

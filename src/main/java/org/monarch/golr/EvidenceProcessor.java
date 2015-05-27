@@ -72,4 +72,16 @@ class EvidenceProcessor {
     return closures;
   }
 
+  Collection<Closure> getSource(Graph graph) {
+    Collection<Closure> closures = new HashSet<>();
+    for (Edge edge: graph.getEdges()) {
+      if ("source".equals(edge.getLabel())) {
+        Vertex vertex = edge.getVertex(Direction.IN);
+        Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
+        closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
+      }
+    }
+    return closures;
+  }
+
 }

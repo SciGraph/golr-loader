@@ -16,7 +16,6 @@ import org.neo4j.graphdb.Result;
 import com.tinkerpop.blueprints.Graph;
 
 import edu.sdsc.scigraph.internal.TinkerGraphUtil;
-import edu.sdsc.scigraph.neo4j.GraphDump;
 
 public class EvidenceProcessorTest extends GolrLoadSetup {
 
