@@ -10,8 +10,26 @@ import com.google.common.base.MoreObjects;
  */
 public class Closure {
 
+  private String curie;
+  private String label;
   private final List<String> curies = new ArrayList<>();
   private final List<String> labels = new ArrayList<>();
+
+  public String getCurie() {
+    return curie;
+  }
+
+  public void setCurie(String curie) {
+    this.curie = curie;
+  }
+
+  public String getLabel() {
+    return label;
+  }
+
+  public void setLabel(String label) {
+    this.label = label;
+  }
 
   public List<String> getCuries() {
     return curies;

@@ -1,10 +1,9 @@
 package org.monarch.golr;
 
-import static com.google.common.collect.Iterables.getFirst;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.monarch.golr.beans.Closure;
@@ -13,30 +12,26 @@ import org.neo4j.graphdb.Node;
 
 import com.google.common.base.Charsets;
 import com.google.inject.Inject;
+import com.tinkerpop.blueprints.Direction;
+import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.util.io.graphson.GraphSONMode;
 import com.tinkerpop.blueprints.util.io.graphson.GraphSONWriter;
 
-import edu.sdsc.scigraph.frames.CommonProperties;
-import edu.sdsc.scigraph.frames.NodeProperties;
 import edu.sdsc.scigraph.internal.GraphAspect;
-import edu.sdsc.scigraph.internal.TinkerGraphUtil;
-import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
 
 class EvidenceProcessor {
 
   private final GraphDatabaseService graphDb;
   private final GraphAspect aspect;
   private final ClosureUtil closureUtil;
-  private final CurieUtil curieUtil;
 
   @Inject
-  EvidenceProcessor(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil, CurieUtil curieUtil) {
+  EvidenceProcessor(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil) {
     this.graphDb = graphDb;
     this.aspect = aspect;
     this.closureUtil = closureUtil;
-    this.curieUtil = curieUtil;
   }
 
   void addAssociations(Graph graph) {
@@ -53,30 +48,26 @@ class EvidenceProcessor {
     return new String(os.toByteArray(), Charsets.UTF_8);
   }
 
-  Closure getEvidenceIds(Graph graph, Set<Long> ignoredNodes) {
-    Closure closure = new Closure();
-    for (Vertex vertex: graph.getVertices()) {
-      if (ignoredNodes.contains(Long.parseLong((String)vertex.getId()))) {
-        continue;
-      }
-      String iri = vertex.getProperty(CommonProperties.URI);
-      closure.getCuries().add(curieUtil.getCurie(iri).or(iri));
-      Collection<String> labels = TinkerGraphUtil.getProperties(vertex, NodeProperties.LABEL, String.class);
-      closure.getLabels().add(getFirst(labels, ""));
-    }
-    return closure;
-  }
-
-  Closure entailEvidence(Graph graph, Set<Long> ignoredNodes) {
-    Closure closures = new Closure();
+  Collection<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {
+    Collection<Closure> closures = new HashSet<>();
     for (Vertex vertex: graph.getVertices()) {
       if (ignoredNodes.contains(Long.parseLong((String)vertex.getId()))) {
         continue;
       }
       Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
-      Closure closure = closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES);
-      closures.getCuries().addAll(closure.getCuries());
-      closures.getLabels().addAll(closure.getLabels());
+      closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
+    }
+    return closures;
+  }
+
+  Collection<Closure> getEvidence(Graph graph) {
+    Collection<Closure> closures = new HashSet<>();
+    for (Edge edge: graph.getEdges()) {
+      if ("evidence".equals(edge.getLabel())) {
+        Vertex vertex = edge.getVertex(Direction.IN);
+        Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
+        closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
+      }
     }
     return closures;
   }

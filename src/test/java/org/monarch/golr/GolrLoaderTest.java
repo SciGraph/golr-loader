@@ -18,7 +18,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
 
   @Before
   public void setup() {
-    EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
+    EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil);
     processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), new ResultSerializerFactoryTestImpl(), stub);
   }
 

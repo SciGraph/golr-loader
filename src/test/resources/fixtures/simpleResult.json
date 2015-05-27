@@ -1,17 +1,21 @@
 [
 	{
 		"thing":"X:d",
-		"thing_label":"",
+		"thing_label":"X:d",
 		"thing_closure":["X:d","X:c","X:b","X:a"],
 		"thing_closure_label":["X:d", "C", "X:b", "A"],
 		"otherThing":"X:e",
-		"otherThing_label":"",
+		"otherThing_label":"X:e",
 		"otherThing_closure":["X:e"],
 		"otherThing_closure_label":["X:e"],
 		"evidence_graph":"foo",
 		"evidence_object":[],
 		"evidence_object_label":[],
 		"evidence_object_closure":[],
-		"evidence_object_closure_label":[]
+		"evidence_object_closure_label":[],
+		"evidence":[],
+		"evidence_label":[],
+		"evidence_closure":[],
+		"evidence_closure_label":[]
 	}
 ]

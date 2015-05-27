@@ -1,5 +1,7 @@
 package org.monarch.golr;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 import org.monarch.golr.beans.Closure;
@@ -8,13 +10,11 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import com.tinkerpop.blueprints.Graph;
 
 import edu.sdsc.scigraph.internal.GraphAspect;
-import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
 
 public class EvidenceProcessorStub extends EvidenceProcessor {
 
-  EvidenceProcessorStub(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil,
-      CurieUtil curieUtil) {
-    super(graphDb, aspect, closureUtil, curieUtil);
+  EvidenceProcessorStub(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil) {
+    super(graphDb, aspect, closureUtil);
   }
 
   @Override
@@ -27,15 +27,8 @@ public class EvidenceProcessorStub extends EvidenceProcessor {
   }
 
   @Override
-  Closure getEvidenceIds(Graph graph, Set<Long> ignoredNodes) {
-    return new Closure();
+  Collection<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {
+    return Collections.emptySet();
   }
-
-  @Override
-  Closure entailEvidence(Graph graph, Set<Long> ignoredNodes) {
-    return new Closure();
-  }
-  
-  
 
 }

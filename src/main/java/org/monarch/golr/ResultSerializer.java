@@ -1,10 +1,7 @@
 package org.monarch.golr;
 
-import static com.google.common.collect.Iterables.getFirst;
-
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 
 import javax.inject.Inject;
 
@@ -13,16 +10,11 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.assistedinject.Assisted;
 
-import edu.sdsc.scigraph.frames.CommonProperties;
-import edu.sdsc.scigraph.frames.NodeProperties;
 import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
-import edu.sdsc.scigraph.neo4j.GraphUtil;
 import edu.sdsc.scigraph.owlapi.OwlRelationships;
-import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
 
 class ResultSerializer {
 
@@ -42,16 +34,14 @@ class ResultSerializer {
 
   private final JsonGenerator generator;
   private final ClosureUtil closureUtil;
-  private final CurieUtil curieUtil;
 
   @Inject
-  ResultSerializer(@Assisted JsonGenerator generator, CurieUtil curieUtil, ClosureUtil closureUtil) {
+  ResultSerializer(@Assisted JsonGenerator generator, ClosureUtil closureUtil) {
     this.generator = generator;
     this.closureUtil = closureUtil;
-    this.curieUtil = curieUtil;
   }
 
-  void writeArray(String fieldName, List<String> values) throws IOException {
+  void writeArray(String fieldName, Collection<String> values) throws IOException {
     generator.writeArrayFieldStart(fieldName);
     for (String value: values) {
       generator.writeString(value);
@@ -60,12 +50,9 @@ class ResultSerializer {
   }
 
   void serialize(String fieldName, Node value, Collection<DirectedRelationshipType> types) throws IOException {
-    String iri = GraphUtil.getProperty(value, CommonProperties.URI, String.class).get();
-    Optional<String> curie = curieUtil.getCurie(iri);
-    generator.writeStringField(fieldName + ID_SUFFIX , curie.or(iri));
-    Collection<String> labels = GraphUtil.getProperties(value, NodeProperties.LABEL, String.class);
-    generator.writeStringField(fieldName + LABEL_SUFFIX, getFirst(labels, ""));
     Closure closure = closureUtil.getClosure(value, types);
+    generator.writeStringField(fieldName + ID_SUFFIX , closure.getCurie());
+    generator.writeStringField(fieldName + LABEL_SUFFIX, closure.getLabel());
     writeArray(fieldName + ID_CLOSURE_SUFFIX, closure.getCuries());
     writeArray(fieldName + LABEL_CLOSURE_SUFFIX, closure.getLabels());
   }

@@ -30,7 +30,7 @@ public class ResultSerializerTest extends GolrLoadSetup {
   @Before
   public void setup() throws Exception {
     generator = new JsonFactory().createGenerator(writer);
-    serializer = new ResultSerializer(generator, curieUtil, closureUtil);
+    serializer = new ResultSerializer(generator, closureUtil);
     generator.writeStartObject();
   }
 
