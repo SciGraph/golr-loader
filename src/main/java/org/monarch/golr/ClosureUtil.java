@@ -142,8 +142,7 @@ class ClosureUtil {
 
     @Override
     public int hashCode() {
-      // TODO Auto-generated method stub
-      return super.hashCode();
+      return Objects.hashCode(node, types);
     }
 
     @Override
