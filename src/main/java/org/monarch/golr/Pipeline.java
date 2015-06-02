@@ -11,9 +11,9 @@ import java.util.logging.Logger;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.http.client.fluent.Request;
@@ -49,32 +49,20 @@ public class Pipeline {
 
   public static Options getOptions() {
     Options options = new Options();
-    OptionBuilder.withLongOpt("graph");
-    OptionBuilder.isRequired();
-    OptionBuilder.hasArg(true);
-    OptionBuilder.withDescription("The Neo4j graph configuration");
-    options.addOption(OptionBuilder.create("g"));
-    OptionBuilder.withLongOpt("query");
-    OptionBuilder.isRequired();
-    OptionBuilder.hasArg(true);
-    OptionBuilder.withDescription("The query configuration");
-    options.addOption(OptionBuilder.create("q"));
-    OptionBuilder.withLongOpt("solr-server");
-    OptionBuilder.isRequired(false);
-    OptionBuilder.hasArg(true);
-    OptionBuilder.withDescription("An optional Solr server to update");
-    options.addOption(OptionBuilder.create("s"));
-    OptionBuilder.withLongOpt("output");
-    OptionBuilder.isRequired(false);
-    OptionBuilder.hasArg(true);
-    OptionBuilder.withDescription("An optional output file for the JSON");
-    options.addOption(OptionBuilder.create("o"));
+    Option option = Option.builder("g").longOpt("graph").required().hasArg().desc("The Neo4j graph configuration").build();
+    options.addOption(option);
+    option = Option.builder("q").longOpt("query").required().hasArg().desc("The query configuration").build();
+    options.addOption(option);
+    option = Option.builder("s").longOpt("solr-server").required(false).hasArg().desc("An optional Solr server to update").build();
+    options.addOption(option);
+    option = Option.builder("o").longOpt("output").required(false).hasArg().desc("An optional output file for the JSON").build();
+    options.addOption(option);
     return options;
   }
 
   public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException {
     Options options = getOptions();
-    CommandLineParser parser = new GnuParser();
+    CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
     Neo4jConfiguration neo4jConfig = null;
     GolrCypherQuery query = null;
