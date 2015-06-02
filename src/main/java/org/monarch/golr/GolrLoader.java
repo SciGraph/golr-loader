@@ -7,22 +7,30 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
 import org.apache.commons.lang3.ClassUtils;
 import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.base.Optional;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 
 import edu.sdsc.scigraph.frames.CommonProperties;
@@ -30,6 +38,7 @@ import edu.sdsc.scigraph.internal.CypherUtil;
 import edu.sdsc.scigraph.internal.TinkerGraphUtil;
 import edu.sdsc.scigraph.neo4j.Graph;
 import edu.sdsc.scigraph.neo4j.GraphUtil;
+import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 public class GolrLoader {
 
@@ -59,9 +68,35 @@ public class GolrLoader {
     serializer.writeArray(baseName + ResultSerializer.ID_CLOSURE_SUFFIX, ClosureUtil.collectIdClosure(closures));
     serializer.writeArray(baseName + ResultSerializer.LABEL_CLOSURE_SUFFIX, ClosureUtil.collectLabelClosure(closures));
   }
-  
-  long process(GolrCypherQuery query, Writer writer) throws IOException {
+
+  Optional<Node> getTaxon(Node source) {
+    RelationshipType inTaxon = DynamicRelationshipType.withName("RO_0002162");
+
+    for (Path path: graphDb.traversalDescription().depthFirst()
+        .relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
+        .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("part_of"), Direction.OUTGOING)
+        .relationships(inTaxon, Direction.OUTGOING)
+        .traverse(source)) {
+      if (path.length() > 0 && path.lastRelationship().isType(inTaxon)) {
+        return Optional.of(path.endNode());
+      }
+    }
+    return Optional.absent();
+  }
+
+  long process(GolrCypherQuery query, Writer writer) throws IOException, ExecutionException {
     long recordCount = 0;
+
+    LoadingCache<Node, Optional<Node>> taxonCache = CacheBuilder.newBuilder()
+        .maximumSize(100_000)
+        .build(new CacheLoader<Node, Optional<Node>>() {
+          @Override
+          public Optional<Node> load(Node source) throws Exception {
+            return getTaxon(source);
+          }
+        });
+
     try (Transaction tx = graphDb.beginTx()) {
       Result result = cypherUtil.execute(query.getQuery());
       JsonGenerator generator = new JsonFactory().createGenerator(writer);
@@ -80,6 +115,7 @@ public class GolrLoader {
           if (null == value) {
             continue;
           }
+
           // Add evidence
           if (value instanceof PropertyContainer) {
             TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
@@ -89,6 +125,15 @@ public class GolrLoader {
 
           if (value instanceof Node) {
             ignoredNodes.add(((Node)value).getId());
+
+            // TODO: Clean this up
+            if ("subject".equals(key) || 
+                "object".equals(key)) {
+              Optional<Node> taxon = taxonCache.get((Node) value);
+              if (taxon.isPresent()) {
+                serializer.serialize(key + "_taxon", taxon.get());
+              }
+            }
 
             if (query.getCollectedTypes().containsKey(key)) {
               serializer.serialize(key, (Node) value, query.getCollectedTypes().get(key));
