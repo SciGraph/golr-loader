@@ -14,6 +14,8 @@ import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Uniqueness;
 
@@ -84,13 +86,22 @@ class ClosureUtil {
     for (DirectedRelationshipType type: checkNotNull(types)) {
       description = description.relationships(type.getType(), type.getDirection());
     }
+    description = description.evaluator(new Evaluator() {
+      @Override
+      public Evaluation evaluate(Path path) {
+        Node node = path.endNode();
+        if (node.hasLabel(OwlLabels.OWL_ANONYMOUS)) {
+          return Evaluation.EXCLUDE_AND_PRUNE;
+        } else {
+          return Evaluation.INCLUDE_AND_CONTINUE;
+        }
+      }
+      
+    });
     closure.setCurie(getCurieOrIri(checkNotNull(start)));
     closure.setLabel(getLabelOrIri(start));
     for (Path path: description.traverse(start)) {
       Node endNode = path.endNode();
-      if (endNode.hasLabel(OwlLabels.OWL_ANONYMOUS)) {
-        continue;
-      }
       closure.getCuries().add(getCurieOrIri(endNode));
       closure.getLabels().add(getLabelOrIri(endNode));
     }
