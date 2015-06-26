@@ -3,6 +3,7 @@ package org.monarch.golr;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -15,8 +16,10 @@ import org.apache.commons.lang3.ClassUtils;
 import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
@@ -24,6 +27,8 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.graphdb.traversal.UniquenessFactory;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -42,16 +47,20 @@ import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 public class GolrLoader {
 
-  private static String EVIDENCE_GRAPH = "evidence_graph";
-  private static String EVIDENCE_FIELD = "evidence";
-  private static String SOURCE_FIELD = "source";
-  private static String EVIDENCE_OBJECT_FIELD = "evidence_object";
+  private static final String EVIDENCE_GRAPH = "evidence_graph";
+  private static final String EVIDENCE_FIELD = "evidence";
+  private static final String SOURCE_FIELD = "source";
+  private static final String EVIDENCE_OBJECT_FIELD = "evidence_object";
 
   private final GraphDatabaseService graphDb;
   private final ResultSerializerFactory factory;
   private final EvidenceProcessor processor;
   private final Graph graph;
   private final CypherUtil cypherUtil;
+
+  private static final Label GENE_LABEL = DynamicLabel.label("gene");
+  private static final Label VARIANT_LABEL = DynamicLabel.label("sequence feature");
+  private static final Label GENOTYPE_LABEL = DynamicLabel.label("genotype");
 
   @Inject
   GolrLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil, ResultSerializerFactory factory, EvidenceProcessor processor) {
@@ -72,13 +81,79 @@ public class GolrLoader {
   Optional<Node> getTaxon(Node source) {
     RelationshipType inTaxon = DynamicRelationshipType.withName("RO_0002162");
 
-    for (Path path: graphDb.traversalDescription().depthFirst()
+    TraversalDescription description = graphDb.traversalDescription().depthFirst()
+        .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
+        .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
         .relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
         .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
-        .relationships(DynamicRelationshipType.withName("part_of"), Direction.OUTGOING)
-        .relationships(inTaxon, Direction.OUTGOING)
-        .traverse(source)) {
+        .relationships(inTaxon, Direction.OUTGOING);
+    Collection<RelationshipType> parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000051"));
+    for (RelationshipType part_of: parts_of) {
+      description = description.relationships(part_of, Direction.OUTGOING);
+    }
+    Collection<RelationshipType> hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000050"));
+    for (RelationshipType hasPart: hasParts) {
+      description = description.relationships(hasPart, Direction.INCOMING);
+    }
+    Collection<RelationshipType> variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("GENO_0000410"));
+    for (RelationshipType variant: variants) {
+      description = description.relationships(variant, Direction.OUTGOING);
+    }
+
+    for (Path path: description.traverse(source)) {
       if (path.length() > 0 && path.lastRelationship().isType(inTaxon)) {
+        return Optional.of(path.endNode());
+      }
+    }
+    return Optional.absent();
+  }
+
+  Optional<Node> getChromosome(Node source) {
+    final String chromosomeType = "http://purl.obolibrary.org/obo/SO_0000340";
+
+    TraversalDescription description = graphDb.traversalDescription().depthFirst()
+        .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
+        .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
+        .relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
+        .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING);
+    Collection<RelationshipType> parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000051"));
+    for (RelationshipType part_of: parts_of) {
+      description = description.relationships(part_of, Direction.OUTGOING);
+    }
+    Collection<RelationshipType> hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000050"));
+    for (RelationshipType hasPart: hasParts) {
+      description = description.relationships(hasPart, Direction.INCOMING);
+    }
+    Collection<RelationshipType> variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("GENO_0000410"));
+    for (RelationshipType variant: variants) {
+      description = description.relationships(variant, Direction.OUTGOING);
+    }
+
+    for (Path path: description.traverse(source)) {
+      if (path.length() > 0 && path.lastRelationship().isType(OwlRelationships.RDF_TYPE)) {
+        String iri = (String)path.endNode().getProperty(CommonProperties.URI);
+        if (iri.equals(chromosomeType)) {
+          return Optional.of(path.endNode());
+        }
+      }
+    }
+    return Optional.absent();
+  }
+
+  Optional<Node> getGene(Node source) {
+    TraversalDescription description = graphDb.traversalDescription().depthFirst()
+        .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH);
+    Collection<RelationshipType> parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000051"));
+    for (RelationshipType part_of: parts_of) {
+      description = description.relationships(part_of, Direction.OUTGOING);
+    }
+    Collection<RelationshipType> variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("GENO_0000410"));
+    for (RelationshipType variant: variants) {
+      description = description.relationships(variant, Direction.OUTGOING);
+    }
+
+    for (Path path: description.traverse(source)) {
+      if (path.length() > 0 && variants.contains(path.lastRelationship().getType())) {
         return Optional.of(path.endNode());
       }
     }
@@ -94,6 +169,24 @@ public class GolrLoader {
           @Override
           public Optional<Node> load(Node source) throws Exception {
             return getTaxon(source);
+          }
+        });
+
+    LoadingCache<Node, Optional<Node>> chromosomeCache = CacheBuilder.newBuilder()
+        .maximumSize(100_000)
+        .build(new CacheLoader<Node, Optional<Node>>() {
+          @Override
+          public Optional<Node> load(Node source) throws Exception {
+            return getChromosome(source);
+          }
+        });
+
+    LoadingCache<Node, Optional<Node>> geneCache = CacheBuilder.newBuilder()
+        .maximumSize(100_000)
+        .build(new CacheLoader<Node, Optional<Node>>() {
+          @Override
+          public Optional<Node> load(Node source) throws Exception {
+            return getGene(source);
           }
         });
 
@@ -129,9 +222,29 @@ public class GolrLoader {
             // TODO: Clean this up
             if ("subject".equals(key) || 
                 "object".equals(key)) {
-              Optional<Node> taxon = taxonCache.get((Node) value);
+              Node node = (Node) value;
+              Optional<Node> taxon = taxonCache.get(node);
               if (taxon.isPresent()) {
                 serializer.serialize(key + "_taxon", taxon.get());
+              }
+              if (node.hasLabel(GENE_LABEL) ||
+                  node.hasLabel(VARIANT_LABEL) ||
+                  node.hasLabel(GENOTYPE_LABEL)) {
+                // Attempt to add gene and chromosome for monarch-initiative/monarch-app/#746
+                if (node.hasLabel(GENE_LABEL)) {
+                  serializer.serialize(key + "_gene", node);
+                } else {
+                  Optional<Node> gene = geneCache.get(node);
+                  if (gene.isPresent()) {
+                    serializer.serialize(key + "_taxon", gene.get());
+                  }
+                }
+
+                Optional<Node> chromosome = chromosomeCache.get(node);
+                if (chromosome.isPresent()) {
+                  serializer.serialize(key + "_chromosome", chromosome.get());
+                }
+
               }
             }
 
