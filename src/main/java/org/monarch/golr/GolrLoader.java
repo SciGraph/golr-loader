@@ -1,5 +1,7 @@
 package org.monarch.golr;
 
+import static com.google.common.collect.Collections2.transform;
+
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
@@ -31,6 +33,7 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -109,12 +112,20 @@ public class GolrLoader {
 
   Optional<Node> getChromosome(Node source) {
     final String chromosomeType = "http://purl.obolibrary.org/obo/SO_0000340";
+    
+    final RelationshipType location = DynamicRelationshipType.withName("location");
+    final RelationshipType begin = DynamicRelationshipType.withName("begin");
+    final RelationshipType reference = DynamicRelationshipType.withName("reference");
 
     TraversalDescription description = graphDb.traversalDescription().depthFirst()
         .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
         .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
         .relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
-        .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING);
+        .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
+        .relationships(location, Direction.OUTGOING)
+        .relationships(begin, Direction.OUTGOING)
+        .relationships(reference, Direction.OUTGOING);
+        
     Collection<RelationshipType> parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000051"));
     for (RelationshipType part_of: parts_of) {
       description = description.relationships(part_of, Direction.OUTGOING);
@@ -127,10 +138,25 @@ public class GolrLoader {
     for (RelationshipType variant: variants) {
       description = description.relationships(variant, Direction.OUTGOING);
     }
+    
+    /*System.out.println(parts_of);
+    System.out.println(hasParts);
+    System.out.println(variants);
+    */
 
     for (Path path: description.traverse(source)) {
+      /*for (PropertyContainer container: path) {
+        
+        if (container instanceof Node) {
+          System.out.print("(" + container.getProperty("uri") + ")");
+        } else {
+          System.out.print("-[" + ((Relationship)container).getType().name() + "]-");
+        }
+      }
+      System.out.println();*/
       if (path.length() > 0 && path.lastRelationship().isType(OwlRelationships.RDF_TYPE)) {
         String iri = (String)path.endNode().getProperty(CommonProperties.URI);
+        //System.out.println(iri);
         if (iri.equals(chromosomeType)) {
           return Optional.of(path.endNode());
         }
@@ -151,8 +177,14 @@ public class GolrLoader {
       description = description.relationships(variant, Direction.OUTGOING);
     }
 
+    Collection<String> variantStrings = transform(variants, new Function<RelationshipType, String>() {
+      @Override
+      public String apply(RelationshipType type) {
+        return type.name();
+      }
+    });
     for (Path path: description.traverse(source)) {
-      if (path.length() > 0 && variants.contains(path.lastRelationship().getType())) {
+      if (path.length() > 0 && variantStrings.contains(path.lastRelationship().getType().name())) {
         return Optional.of(path.endNode());
       }
     }
@@ -235,7 +267,7 @@ public class GolrLoader {
                 } else {
                   Optional<Node> gene = geneCache.get(node);
                   if (gene.isPresent()) {
-                    serializer.serialize(key + "_taxon", gene.get());
+                    serializer.serialize(key + "_gene", gene.get());
                   }
                 }
 
