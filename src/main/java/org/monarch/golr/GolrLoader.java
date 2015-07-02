@@ -158,7 +158,7 @@ public class GolrLoader {
         String iri = (String)path.endNode().getProperty(CommonProperties.URI);
         //System.out.println(iri);
         if (iri.equals(chromosomeType)) {
-          return Optional.of(path.endNode());
+          return Optional.of(path.lastRelationship().getOtherNode(path.endNode()));
         }
       }
     }
