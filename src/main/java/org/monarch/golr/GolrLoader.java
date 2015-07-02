@@ -49,7 +49,7 @@ import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 public class GolrLoader {
 
-  private static final String EVIDENCE_GRAPH = "evidence_graph";
+  //private static final String EVIDENCE_GRAPH = "evidence_graph";
   private static final String EVIDENCE_FIELD = "evidence";
   private static final String SOURCE_FIELD = "source";
   private static final String EVIDENCE_OBJECT_FIELD = "evidence_object";
@@ -130,19 +130,19 @@ public class GolrLoader {
     for (RelationshipType part_of: parts_of) {
       description = description.relationships(part_of, Direction.OUTGOING);
     }
-    Collection<RelationshipType> hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000050"));
+    Collection<RelationshipType> hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("RO_0002525"));
     for (RelationshipType hasPart: hasParts) {
-      description = description.relationships(hasPart, Direction.INCOMING);
+      description = description.relationships(hasPart, Direction.OUTGOING);
     }
     Collection<RelationshipType> variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("GENO_0000410"));
     for (RelationshipType variant: variants) {
-      description = description.relationships(variant, Direction.OUTGOING);
+      description = description.relationships(variant, Direction.INCOMING);
     }
     
     /*System.out.println(parts_of);
     System.out.println(hasParts);
-    System.out.println(variants);
-    */
+    System.out.println(variants);*/
+    
 
     for (Path path: description.traverse(source)) {
       /*for (PropertyContainer container: path) {
@@ -174,7 +174,7 @@ public class GolrLoader {
     }
     Collection<RelationshipType> variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("GENO_0000410"));
     for (RelationshipType variant: variants) {
-      description = description.relationships(variant, Direction.OUTGOING);
+      description = description.relationships(variant, Direction.INCOMING);
     }
 
     Collection<String> variantStrings = transform(variants, new Function<RelationshipType, String>() {
@@ -294,7 +294,8 @@ public class GolrLoader {
           }
         }
         processor.addAssociations(evidenceGraph);
-        serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+        //TODO: Removing to attempt to deal with Solr memory issues
+        //serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
         Collection<Closure> evidenceObjectClosure = processor.getEvidenceObject(evidenceGraph, ignoredNodes);
         writeQuad(serializer, EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
         Collection<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
