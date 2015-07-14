@@ -5,7 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
-import java.util.Collection;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -32,14 +32,14 @@ public class EvidenceProcessorTest extends GolrLoadSetup {
 
   @Test
   public void evidence_object() {
-    Collection<Closure> closures = processor.getEvidenceObject(graph, newHashSet(3L, 4L));
+    List<Closure> closures = processor.getEvidenceObject(graph, newHashSet(3L, 4L));
     assertThat(ClosureUtil.collectIds(closures), containsInAnyOrder("X:assn", "X:evidence"));
     assertThat(ClosureUtil.collectIdClosure(closures), containsInAnyOrder("X:assn", "X:evidence", "X:assn_parent"));
   }
 
   @Test
   public void evidence() {
-    Collection<Closure> closures = processor.getEvidence(graph);
+    List<Closure> closures = processor.getEvidence(graph);
     assertThat(ClosureUtil.collectIds(closures), contains("X:evidence"));
     assertThat(ClosureUtil.collectIdClosure(closures), contains("X:evidence"));
   }

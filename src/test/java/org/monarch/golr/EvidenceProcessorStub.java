@@ -1,7 +1,8 @@
 package org.monarch.golr;
 
-import java.util.Collection;
-import java.util.Collections;
+import static java.util.Collections.emptyList;
+
+import java.util.List;
 import java.util.Set;
 
 import org.monarch.golr.beans.Closure;
@@ -27,8 +28,8 @@ public class EvidenceProcessorStub extends EvidenceProcessor {
   }
 
   @Override
-  Collection<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {
-    return Collections.emptySet();
+  List<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {
+    return emptyList();
   }
 
 }

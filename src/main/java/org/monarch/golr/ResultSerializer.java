@@ -1,7 +1,11 @@
 package org.monarch.golr;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collection;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -10,6 +14,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.assistedinject.Assisted;
 
@@ -22,6 +27,7 @@ class ResultSerializer {
   static final String ID_CLOSURE_SUFFIX = "_closure";
   static final String LABEL_SUFFIX = "_label";
   static final String LABEL_CLOSURE_SUFFIX = "_closure_label";
+  static final String CLOSURE_MAP_SUFFIX = "_closure_map";
 
   private static final DirectedRelationshipType SUBCLASS =
       new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING);
@@ -36,6 +42,7 @@ class ResultSerializer {
   static final Collection<DirectedRelationshipType> DEFAULT_CLOSURE_TYPES =
       ImmutableSet.of(EQUIVALENT_CLASS, SUBCLASS, TYPE, SAME_AS, SUBPROPERTY);
 
+  private final ObjectMapper mapper = new ObjectMapper();
   private final JsonGenerator generator;
   private final ClosureUtil closureUtil;
 
@@ -45,7 +52,7 @@ class ResultSerializer {
     this.closureUtil = closureUtil;
   }
 
-  void writeArray(String fieldName, Collection<String> values) throws IOException {
+  void writeArray(String fieldName, List<String> values) throws IOException {
     generator.writeArrayFieldStart(fieldName);
     for (String value: values) {
       generator.writeString(value);
@@ -55,10 +62,7 @@ class ResultSerializer {
 
   void serialize(String fieldName, Node value, Collection<DirectedRelationshipType> types) throws IOException {
     Closure closure = closureUtil.getClosure(value, types);
-    generator.writeStringField(fieldName + ID_SUFFIX , closure.getCurie());
-    generator.writeStringField(fieldName + LABEL_SUFFIX, closure.getLabel());
-    writeArray(fieldName + ID_CLOSURE_SUFFIX, closure.getCuries());
-    writeArray(fieldName + LABEL_CLOSURE_SUFFIX, closure.getLabels());
+    writeQuint(this, fieldName, newArrayList(closure));
   }
   
   void serialize(String fieldName, Node value) throws IOException {
@@ -108,6 +112,21 @@ class ResultSerializer {
     } else {
       throw new IllegalArgumentException("Don't know how to serialize " + value.getClass());
     }
+  }
+
+  void writeQuint(ResultSerializer serializer, String baseName, List<Closure> closures)
+      throws IOException {
+    serializer.writeArray(baseName + ID_SUFFIX, ClosureUtil.collectIds(closures));
+    serializer.writeArray(baseName + LABEL_SUFFIX,
+        ClosureUtil.collectLabels(closures));
+    serializer.writeArray(baseName + ID_CLOSURE_SUFFIX,
+        ClosureUtil.collectIdClosure(closures));
+    serializer.writeArray(baseName + LABEL_CLOSURE_SUFFIX,
+        ClosureUtil.collectLabelClosure(closures));
+    StringWriter writer = new StringWriter();
+    mapper.writeValue(writer, ClosureUtil.collectClosureMap(closures));
+    generator.writeStringField(baseName + CLOSURE_MAP_SUFFIX, writer.toString());
+    
   }
 
 }

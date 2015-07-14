@@ -1,11 +1,16 @@
 package org.monarch.golr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Collections2.transform;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getFirst;
+import static com.google.common.collect.Lists.transform;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
@@ -79,7 +84,7 @@ class ClosureUtil {
     }
     return null;
   }
-  
+
   private Closure getUncachedClosure(Node start, Collection<DirectedRelationshipType> types) {
     Closure closure = new Closure();
     TraversalDescription description = graphDb.traversalDescription().depthFirst().uniqueness(Uniqueness.NODE_GLOBAL);
@@ -96,7 +101,7 @@ class ClosureUtil {
           return Evaluation.INCLUDE_AND_CONTINUE;
         }
       }
-      
+
     });
     closure.setCurie(getCurieOrIri(checkNotNull(start)));
     closure.setLabel(getLabelOrIri(start));
@@ -108,7 +113,7 @@ class ClosureUtil {
     return closure;
   }
 
-  static Collection<String> collectLabels(Collection<Closure> closures) {
+  static List<String> collectLabels(List<Closure> closures) {
     return transform(closures, new Function<Closure, String>() {
       @Override
       public String apply(Closure closure) {
@@ -117,7 +122,7 @@ class ClosureUtil {
     });
   }
 
-  static Collection<String> collectIds(Collection<Closure> closures) {
+  static List<String> collectIds(List<Closure> closures) {
     return transform(closures, new Function<Closure, String>() {
       @Override
       public String apply(Closure closure) {
@@ -126,20 +131,33 @@ class ClosureUtil {
     });
   }
 
-  static Collection<String> collectLabelClosure(Collection<Closure> closures) {
-    Collection<String> labels = new ArrayList<>();
+  static List<String> collectLabelClosure(List<Closure> closures) {
+    List<String> labels = new ArrayList<>();
     for (Closure closure: closures) {
       labels.addAll(closure.getLabels());
     }
     return labels;
   }
 
-  static Collection<String> collectIdClosure(Collection<Closure> closures) {
-    Collection<String> ids = new ArrayList<>();
+  static List<String> collectIdClosure(List<Closure> closures) {
+    List<String> ids = new ArrayList<>();
     for (Closure closure: closures) {
       ids.addAll(closure.getCuries());
     }
     return ids;
+  }
+
+  static Map<String, String> collectClosureMap(List<Closure> closures) {
+    Map<String, String> closureMap = new HashMap<>();
+    List<String> idClosure = collectIdClosure(closures);
+    List<String> labelClosure = collectLabelClosure(closures);
+    checkState(idClosure.size() == labelClosure.size());
+    Iterator<String> keyIter = idClosure.iterator();
+    Iterator<String> valueIter = labelClosure.iterator();
+    while (keyIter.hasNext() && valueIter.hasNext()) {
+      closureMap.put(keyIter.next(), valueIter.next());
+    }
+    return closureMap;
   }
 
   static final class ClosureKey {
@@ -165,7 +183,7 @@ class ClosureUtil {
         return false;
       }
       return Objects.equal(node, ((ClosureKey)obj).node) &&
-             Objects.equal(types, ((ClosureKey)obj).types);
+          Objects.equal(types, ((ClosureKey)obj).types);
     }
 
   }

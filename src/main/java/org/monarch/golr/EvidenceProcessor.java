@@ -2,8 +2,8 @@ package org.monarch.golr;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.monarch.golr.beans.Closure;
@@ -48,8 +48,8 @@ class EvidenceProcessor {
     return new String(os.toByteArray(), Charsets.UTF_8);
   }
 
-  Collection<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {
-    Collection<Closure> closures = new HashSet<>();
+  List<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {
+    List<Closure> closures = new ArrayList<>();
     for (Vertex vertex: graph.getVertices()) {
       if (ignoredNodes.contains(Long.parseLong((String)vertex.getId()))) {
         continue;
@@ -60,8 +60,8 @@ class EvidenceProcessor {
     return closures;
   }
 
-  Collection<Closure> getEvidence(Graph graph) {
-    Collection<Closure> closures = new HashSet<>();
+  List<Closure> getEvidence(Graph graph) {
+    List<Closure> closures = new ArrayList<>();
     for (Edge edge: graph.getEdges()) {
       if ("evidence".equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
@@ -72,8 +72,8 @@ class EvidenceProcessor {
     return closures;
   }
 
-  Collection<Closure> getSource(Graph graph) {
-    Collection<Closure> closures = new HashSet<>();
+  List<Closure> getSource(Graph graph) {
+    List<Closure> closures = new ArrayList<>();
     for (Edge edge: graph.getEdges()) {
       if ("source".equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);

@@ -1,6 +1,7 @@
 {
-  "node": "X:b",
-  "node_label": "X:b",
+  "node": ["X:b"],
+  "node_label": ["X:b"],
   "node_closure": ["X:b", "X:a"],
-  "node_closure_label": ["X:b", "A"]
+  "node_closure_label": ["X:b", "A"],
+  "node_closure_map": "{\"X:a\":\"A\",\"X:b\":\"X:b\"}"
 }
