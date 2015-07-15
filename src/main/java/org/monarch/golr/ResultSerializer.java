@@ -62,7 +62,7 @@ class ResultSerializer {
 
   void serialize(String fieldName, Node value, Collection<DirectedRelationshipType> types) throws IOException {
     Closure closure = closureUtil.getClosure(value, types);
-    writeQuint(this, fieldName, newArrayList(closure));
+    writeQuint(fieldName, newArrayList(closure));
   }
   
   void serialize(String fieldName, Node value) throws IOException {
@@ -114,14 +114,14 @@ class ResultSerializer {
     }
   }
 
-  void writeQuint(ResultSerializer serializer, String baseName, List<Closure> closures)
+  void writeQuint(String baseName, List<Closure> closures)
       throws IOException {
-    serializer.writeArray(baseName + ID_SUFFIX, ClosureUtil.collectIds(closures));
-    serializer.writeArray(baseName + LABEL_SUFFIX,
+    writeArray(baseName + ID_SUFFIX, ClosureUtil.collectIds(closures));
+    writeArray(baseName + LABEL_SUFFIX,
         ClosureUtil.collectLabels(closures));
-    serializer.writeArray(baseName + ID_CLOSURE_SUFFIX,
+    writeArray(baseName + ID_CLOSURE_SUFFIX,
         ClosureUtil.collectIdClosure(closures));
-    serializer.writeArray(baseName + LABEL_CLOSURE_SUFFIX,
+    writeArray(baseName + LABEL_CLOSURE_SUFFIX,
         ClosureUtil.collectLabelClosure(closures));
     StringWriter writer = new StringWriter();
     mapper.writeValue(writer, ClosureUtil.collectClosureMap(closures));

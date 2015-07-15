@@ -1,8 +1,11 @@
 package org.monarch.golr;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -20,6 +23,8 @@ import com.tinkerpop.blueprints.util.io.graphson.GraphSONMode;
 import com.tinkerpop.blueprints.util.io.graphson.GraphSONWriter;
 
 import edu.sdsc.scigraph.internal.GraphAspect;
+import edu.sdsc.scigraph.internal.TinkerGraphUtil;
+import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 class EvidenceProcessor {
 
@@ -82,6 +87,14 @@ class EvidenceProcessor {
       }
     }
     return closures;
+  }
+
+  List<String> getDefinedBys(Graph graph) {
+    Set<String> definedBys = new HashSet<>();
+    for (Edge edge: graph.getEdges()) {
+      definedBys.addAll(TinkerGraphUtil.getProperties(edge, OwlRelationships.RDFS_IS_DEFINED_BY.name(), String.class));
+    }
+    return newArrayList(definedBys);
   }
 
 }

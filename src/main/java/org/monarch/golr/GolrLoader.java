@@ -56,6 +56,7 @@ public class GolrLoader {
   private static final String EVIDENCE_FIELD = "evidence";
   private static final String SOURCE_FIELD = "source";
   private static final String EVIDENCE_OBJECT_FIELD = "evidence_object";
+  private static final String DEFINED_BY = "is_defined_by";
 
   private final GraphDatabaseService graphDb;
   private final ResultSerializerFactory factory;
@@ -293,11 +294,12 @@ public class GolrLoader {
         // serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
         List<Closure> evidenceObjectClosure =
             processor.getEvidenceObject(evidenceGraph, ignoredNodes);
-        serializer.writeQuint(serializer, EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
+        serializer.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
         List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
-        serializer.writeQuint(serializer, EVIDENCE_FIELD, evidenceClosure);
+        serializer.writeQuint(EVIDENCE_FIELD, evidenceClosure);
         List<Closure> sourceClosure = processor.getSource(evidenceGraph);
-        serializer.writeQuint(serializer, SOURCE_FIELD, sourceClosure);
+        serializer.writeQuint(SOURCE_FIELD, sourceClosure);
+        serializer.writeArray(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
         generator.writeEndObject();
       }
       generator.writeEndArray();

@@ -24,6 +24,7 @@
 		"source_label":[],
 		"source_closure":[],
 		"source_closure_label":[],
-		"source_closure_map":"{}"
+		"source_closure_map":"{}",
+		"is_defined_by":[]
 	}
 ]
