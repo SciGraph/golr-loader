@@ -129,7 +129,7 @@ public class GolrLoader {
         .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
         .relationships(location, Direction.OUTGOING).relationships(begin, Direction.OUTGOING)
         .relationships(reference, Direction.OUTGOING);
-    
+
     Optional<Long> nodeId = graph.getNode(CHROMOSOME_TYPE);
     if (!nodeId.isPresent()) {
       // TODO: Move all of this to some external configuration
@@ -141,7 +141,7 @@ public class GolrLoader {
         OwlRelationships.RDFS_SUBCLASS_OF, Direction.INCOMING), true);
 
     geneDescription = graphDb.traversalDescription().depthFirst()
-    .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH);
+        .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH);
     for (RelationshipType part_of : parts_of) {
       geneDescription = geneDescription.relationships(part_of, Direction.OUTGOING);
     }
@@ -228,6 +228,7 @@ public class GolrLoader {
         Map<String, Object> row = result.next();
         com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
         Set<Long> ignoredNodes = new HashSet<>();
+        boolean emitEvidence = true;
         for (Entry<String, Object> entry : row.entrySet()) {
           String key = entry.getKey();
           Object value = entry.getValue();
@@ -286,20 +287,28 @@ public class GolrLoader {
             serializer.serialize(key, objectProperty);
           } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
             // Serialize primitive types and Strings
+            if ((key.equals("subject_category") || key.equals("object_category")) && value.equals("ontology")) {
+              emitEvidence = false;
+            }
             serializer.serialize(key, value);
           }
         }
         processor.addAssociations(evidenceGraph);
         // TODO: Removing to attempt to deal with Solr memory issues
         // serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
-        List<Closure> evidenceObjectClosure =
-            processor.getEvidenceObject(evidenceGraph, ignoredNodes);
-        serializer.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
-        List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
-        serializer.writeQuint(EVIDENCE_FIELD, evidenceClosure);
-        List<Closure> sourceClosure = processor.getSource(evidenceGraph);
-        serializer.writeQuint(SOURCE_FIELD, sourceClosure);
-        serializer.writeArray(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
+
+        // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
+        // Don't emit evidence for ontology sources
+        if (emitEvidence) {
+          List<Closure> evidenceObjectClosure =
+              processor.getEvidenceObject(evidenceGraph, ignoredNodes);
+          serializer.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
+          List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
+          serializer.writeQuint(EVIDENCE_FIELD, evidenceClosure);
+          List<Closure> sourceClosure = processor.getSource(evidenceGraph);
+          serializer.writeQuint(SOURCE_FIELD, sourceClosure);
+          serializer.writeArray(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
+        }
         generator.writeEndObject();
       }
       generator.writeEndArray();
