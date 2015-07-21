@@ -52,7 +52,7 @@ import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 public class GolrLoader {
 
-  // private static final String EVIDENCE_GRAPH = "evidence_graph";
+  private static final String EVIDENCE_GRAPH = "evidence_graph";
   private static final String EVIDENCE_FIELD = "evidence";
   private static final String SOURCE_FIELD = "source";
   private static final String EVIDENCE_OBJECT_FIELD = "evidence_object";
@@ -294,8 +294,7 @@ public class GolrLoader {
           }
         }
         processor.addAssociations(evidenceGraph);
-        // TODO: Removing to attempt to deal with Solr memory issues
-        // serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+        serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
 
         // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
         // Don't emit evidence for ontology sources

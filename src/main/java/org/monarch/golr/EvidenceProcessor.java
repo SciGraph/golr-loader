@@ -1,9 +1,11 @@
 package org.monarch.golr;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.singleton;
+import io.dropwizard.jackson.Jackson;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -13,30 +15,34 @@ import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
-import com.google.common.base.Charsets;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
-import com.tinkerpop.blueprints.util.io.graphson.GraphSONMode;
-import com.tinkerpop.blueprints.util.io.graphson.GraphSONWriter;
 
+import edu.sdsc.scigraph.bbop.BbopGraph;
+import edu.sdsc.scigraph.bbop.BbopGraphUtil;
 import edu.sdsc.scigraph.internal.GraphAspect;
 import edu.sdsc.scigraph.internal.TinkerGraphUtil;
 import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 class EvidenceProcessor {
 
+  private static final ObjectMapper MAPPER = Jackson.newObjectMapper();
+
   private final GraphDatabaseService graphDb;
   private final GraphAspect aspect;
   private final ClosureUtil closureUtil;
+  private final BbopGraphUtil bbopUtil;
 
   @Inject
-  EvidenceProcessor(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil) {
+  EvidenceProcessor(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil, BbopGraphUtil bbopUtil) {
     this.graphDb = graphDb;
     this.aspect = aspect;
     this.closureUtil = closureUtil;
+    this.bbopUtil = bbopUtil;
   }
 
   void addAssociations(Graph graph) {
@@ -44,13 +50,15 @@ class EvidenceProcessor {
   }
 
   String getEvidenceGraph(Graph graph) {
-    ByteArrayOutputStream os = new ByteArrayOutputStream();
+    TinkerGraphUtil.project(graph, singleton("label"));
+    BbopGraph bbopGraph = bbopUtil.convertGraph(graph);
+    StringWriter writer = new StringWriter();
     try {
-      GraphSONWriter.outputGraph(graph, os, GraphSONMode.COMPACT);
+      MAPPER.writeValue(writer, bbopGraph);
     } catch (IOException e) {
-      throw new IllegalStateException();
+      e.printStackTrace();
     }
-    return new String(os.toByteArray(), Charsets.UTF_8);
+    return writer.toString();
   }
 
   List<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {

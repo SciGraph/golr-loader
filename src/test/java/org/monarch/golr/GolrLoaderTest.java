@@ -34,7 +34,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
   @Test
   public void defaultClosuresSerialize() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
-    processor.process(query, writer);
+    processor.process(query , writer);
     JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), true);
   }
 

@@ -15,7 +15,7 @@ import edu.sdsc.scigraph.internal.GraphAspect;
 public class EvidenceProcessorStub extends EvidenceProcessor {
 
   EvidenceProcessorStub(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil) {
-    super(graphDb, aspect, closureUtil);
+    super(graphDb, aspect, closureUtil, null);
   }
 
   @Override
