@@ -76,7 +76,8 @@ class EvidenceProcessor {
   List<Closure> getEvidence(Graph graph) {
     List<Closure> closures = new ArrayList<>();
     for (Edge edge: graph.getEdges()) {
-      if ("evidence".equals(edge.getLabel())) {
+      // TODO: Fragment removal for #118
+      if ("RO_0002558".equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
         Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
         closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
