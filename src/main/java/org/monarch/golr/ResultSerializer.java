@@ -1,9 +1,10 @@
 package org.monarch.golr;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.singleton;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -60,13 +61,16 @@ class ResultSerializer {
     generator.writeEndArray();
   }
 
-  void serialize(String fieldName, Node value, Collection<DirectedRelationshipType> types) throws IOException {
-    Closure closure = closureUtil.getClosure(value, types);
-    writeQuint(fieldName, newArrayList(closure));
+  void serialize(String fieldName, Collection<Node> values, Collection<DirectedRelationshipType> types) throws IOException {
+    List<Closure> closures = new ArrayList<>();
+    for (Node node: values) {
+      closures.add(closureUtil.getClosure(node, types));
+    }
+    writeQuint(fieldName, closures);
   }
   
-  void serialize(String fieldName, Node value) throws IOException {
-    serialize(fieldName, value, DEFAULT_CLOSURE_TYPES);
+  void serialize(String fieldName, Collection<Node> values) throws IOException {
+    serialize(fieldName, values, DEFAULT_CLOSURE_TYPES);
   }
 
   void serialize(String fieldName, String value) throws IOException {
@@ -96,7 +100,7 @@ class ResultSerializer {
   // TODO: A better pattern for this
   void serialize(String fieldName, Object value) throws IOException {
     if (value instanceof Node) {
-      serialize(fieldName, (Node)value);
+      serialize(fieldName, singleton((Node)value));
     } else if (value instanceof String) {
       serialize(fieldName, (String)value);
     } else if (value instanceof Boolean) {

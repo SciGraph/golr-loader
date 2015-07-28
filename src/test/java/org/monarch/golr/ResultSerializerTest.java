@@ -1,6 +1,7 @@
 package org.monarch.golr;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.singleton;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -77,7 +78,7 @@ public class ResultSerializerTest extends GolrLoadSetup {
   @Test
   public void serializeNodeWithDynamicType() throws Exception {
     a.createRelationshipTo(b, DynamicRelationshipType.withName("hasPart"));
-    serializer.serialize("node", b, newHashSet(new DirectedRelationshipType("hasPart", "INCOMING")));
+    serializer.serialize("node", singleton(b), newHashSet(new DirectedRelationshipType("hasPart", "INCOMING")));
     JSONAssert.assertEquals(getFixture("fixtures/node.json"), getActual(), false);
   }
 

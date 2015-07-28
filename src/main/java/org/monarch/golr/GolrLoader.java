@@ -1,6 +1,7 @@
 package org.monarch.golr;
 
 import static com.google.common.collect.Collections2.transform;
+import static java.util.Collections.singleton;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -30,15 +31,20 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.io.Resources;
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 
 import edu.sdsc.scigraph.frames.CommonProperties;
@@ -82,6 +88,8 @@ public class GolrLoader {
 
   private TraversalDescription taxonDescription;
   private TraversalDescription chromosomeDescription;
+  private TraversalDescription diseaseDescription;
+  private TraversalDescription phenotypeDescription;
   private Collection<Node> chromsomeEntailment;
   private TraversalDescription geneDescription;
   private Collection<String> variantStrings;
@@ -156,6 +164,19 @@ public class GolrLoader {
       }
     });
 
+    diseaseDescription = graphDb.traversalDescription().depthFirst()
+        .relationships(DynamicRelationshipType.withName("RO_0002200"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("RO_0002610"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("RO_0002326"), Direction.OUTGOING)
+        .evaluator(Evaluators.atDepth(1));
+    
+    phenotypeDescription = graphDb.traversalDescription().depthFirst()
+        .relationships(DynamicRelationshipType.withName("RO_0002200"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("RO_0002610"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("RO_0002326"), Direction.OUTGOING)
+        .evaluator(Evaluators.fromDepth(1))
+        .evaluator(Evaluators.toDepth(2));
+
   }
 
   Optional<Node> getTaxon(Node source) {
@@ -185,6 +206,32 @@ public class GolrLoader {
       }
     }
     return Optional.absent();
+  }
+
+  Collection<Node> getDiseases(Node source) throws IOException {
+    String cypher = Resources.toString(Resources.getResource("disease.cypher"), Charsets.UTF_8);
+    Multimap<String, Object> params = HashMultimap.create();
+    params.put("id", source.getId());
+    Result result = cypherUtil.execute(cypher, params);
+    Collection<Node> diseases = new HashSet<>();
+    while (result.hasNext()) {
+      Map<String, Object> row = result.next();
+      diseases.add((Node) row.get("disease"));
+    }
+    return diseases;
+  }
+  
+  Collection<Node> getPhenotypes(Node source) throws IOException {
+    String cypher = Resources.toString(Resources.getResource("phenotype.cypher"), Charsets.UTF_8);
+    Multimap<String, Object> params = HashMultimap.create();
+    params.put("id", source.getId());
+    Result result = cypherUtil.execute(cypher, params);
+    Collection<Node> phenotypes = new HashSet<>();
+    while (result.hasNext()) {
+      Map<String, Object> row = result.next();
+      phenotypes.add((Node) row.get("phenotype"));
+    }
+    return phenotypes;
   }
 
   long process(GolrCypherQuery query, Writer writer) throws IOException, ExecutionException {
@@ -274,8 +321,15 @@ public class GolrLoader {
               }
             }
 
+            if ("feature".equals(key)) {
+              // Add disease and phenotype for feature
+              serializer.serialize("disease", getDiseases((Node)value));
+              serializer.serialize("phenotype", getPhenotypes((Node)value));
+              
+            }
+
             if (query.getCollectedTypes().containsKey(key)) {
-              serializer.serialize(key, (Node) value, query.getCollectedTypes().get(key));
+              serializer.serialize(key, singleton((Node)value), query.getCollectedTypes().get(key));
             } else {
               serializer.serialize(key, value);
             }
