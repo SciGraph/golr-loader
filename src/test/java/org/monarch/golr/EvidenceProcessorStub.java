@@ -1,6 +1,7 @@
 package org.monarch.golr;
 
 import static java.util.Collections.emptyList;
+import io.scigraph.internal.GraphAspect;
 
 import java.util.List;
 import java.util.Set;
@@ -9,8 +10,6 @@ import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.GraphDatabaseService;
 
 import com.tinkerpop.blueprints.Graph;
-
-import edu.sdsc.scigraph.internal.GraphAspect;
 
 public class EvidenceProcessorStub extends EvidenceProcessor {
 

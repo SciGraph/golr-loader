@@ -4,15 +4,14 @@ import static com.google.common.collect.Sets.newHashSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import io.scigraph.neo4j.DirectedRelationshipType;
+import io.scigraph.owlapi.OwlRelationships;
 
 import java.util.Set;
 
 import org.junit.Test;
 import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.Direction;
-
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
-import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 public class ClosureTest extends GolrLoadSetup {
 

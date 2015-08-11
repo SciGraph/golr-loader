@@ -3,6 +3,7 @@ package org.monarch.golr;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import io.scigraph.neo4j.DirectedRelationshipType;
 
 import java.io.IOException;
 
@@ -15,8 +16,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 
 public class YamlSerializationTest {
 

@@ -11,14 +11,6 @@
     <maven>3.0.1</maven>
   </prerequisites>
 
-  <repositories>
-    <repository>
-      <id>CRBS</id>
-      <name>CRBS Maven Repo</name>
-      <url>http://maven.crbs.ucsd.edu/nexus/content/repositories/NIF-snapshot</url>
-    </repository>
-  </repositories>
-
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -26,12 +18,12 @@
 
   <dependencies>
     <dependency>
-      <groupId>edu.sdsc</groupId>
+      <groupId>io.scigraph</groupId>
       <artifactId>scigraph-core</artifactId>
       <version>1.5-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>edu.sdsc</groupId>
+      <groupId>io.scigraph</groupId>
       <artifactId>scigraph-core</artifactId>
       <type>test-jar</type>
       <version>1.5-SNAPSHOT</version>

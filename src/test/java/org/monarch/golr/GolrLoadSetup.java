@@ -1,5 +1,10 @@
 package org.monarch.golr;
 
+import io.scigraph.frames.CommonProperties;
+import io.scigraph.frames.NodeProperties;
+import io.scigraph.owlapi.OwlRelationships;
+import io.scigraph.owlapi.curies.CurieUtil;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
@@ -15,13 +20,7 @@ import org.neo4j.graphdb.Transaction;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 
-import edu.sdsc.scigraph.frames.CommonProperties;
-import edu.sdsc.scigraph.frames.NodeProperties;
-import edu.sdsc.scigraph.owlapi.OwlRelationships;
-import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
-import edu.sdsc.scigraph.util.GraphTestBase;
-
-public class GolrLoadSetup extends GraphTestBase {
+public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
 
   static Node a, b, c, d, e, f;
   static CurieUtil curieUtil;
@@ -40,7 +39,7 @@ public class GolrLoadSetup extends GraphTestBase {
       Relationship r3 = addRelationship("http://x.org/a_c", "http://x.org/a_d", OwlRelationships.RDF_TYPE);
       Relationship r4 = addRelationship("http://x.org/a_e", "http://x.org/a_d", DynamicRelationshipType.withName("CAUSES"));
       Relationship r5 = addRelationship("http://x.org/a_f", "http://x.org/a_e", DynamicRelationshipType.withName("partOf"));
-      graph.setRelationshipProperty(r4.getId(), CommonProperties.URI, "http://x.org/a_causes");
+      graph.setRelationshipProperty(r4.getId(), CommonProperties.IRI, "http://x.org/a_causes");
       addRelationship("http://x.org/a_causes_parent", "http://x.org/a_causes", OwlRelationships.RDFS_SUB_PROPERTY_OF);
       addRelationship("_:anon", "http://x.org/a_b", OwlRelationships.RDFS_SUBCLASS_OF);
       r1.getEndNode().setProperty(NodeProperties.LABEL, "A");

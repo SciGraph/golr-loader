@@ -4,6 +4,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import io.scigraph.internal.TinkerGraphUtil;
 
 import java.util.List;
 
@@ -14,8 +15,6 @@ import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.Result;
 
 import com.tinkerpop.blueprints.Graph;
-
-import edu.sdsc.scigraph.internal.TinkerGraphUtil;
 
 public class EvidenceProcessorTest extends GolrLoadSetup {
 

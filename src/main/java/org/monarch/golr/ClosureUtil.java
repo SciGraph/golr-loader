@@ -4,6 +4,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getFirst;
 import static com.google.common.collect.Lists.transform;
+import io.scigraph.frames.CommonProperties;
+import io.scigraph.frames.NodeProperties;
+import io.scigraph.neo4j.DirectedRelationshipType;
+import io.scigraph.neo4j.GraphUtil;
+import io.scigraph.owlapi.OwlLabels;
+import io.scigraph.owlapi.curies.CurieUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,13 +36,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
-import edu.sdsc.scigraph.frames.CommonProperties;
-import edu.sdsc.scigraph.frames.NodeProperties;
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
-import edu.sdsc.scigraph.neo4j.GraphUtil;
-import edu.sdsc.scigraph.owlapi.OwlLabels;
-import edu.sdsc.scigraph.owlapi.curies.CurieUtil;
-
 class ClosureUtil {
 
   private final GraphDatabaseService graphDb;
@@ -58,7 +57,7 @@ class ClosureUtil {
   }
 
   private String getCurieOrIri(Node node) {
-    String iri = (String)checkNotNull(node).getProperty(CommonProperties.URI);
+    String iri = (String)checkNotNull(node).getProperty(CommonProperties.IRI);
     return curieUtil.getCurie(iri).or(iri);
   }
 

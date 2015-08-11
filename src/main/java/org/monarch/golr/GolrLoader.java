@@ -2,6 +2,14 @@ package org.monarch.golr;
 
 import static com.google.common.collect.Collections2.transform;
 import static java.util.Collections.singleton;
+import io.scigraph.frames.CommonProperties;
+import io.scigraph.internal.CypherUtil;
+import io.scigraph.internal.GraphApi;
+import io.scigraph.internal.TinkerGraphUtil;
+import io.scigraph.neo4j.DirectedRelationshipType;
+import io.scigraph.neo4j.Graph;
+import io.scigraph.neo4j.GraphUtil;
+import io.scigraph.owlapi.OwlRelationships;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -46,15 +54,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Resources;
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
-
-import edu.sdsc.scigraph.frames.CommonProperties;
-import edu.sdsc.scigraph.internal.CypherUtil;
-import edu.sdsc.scigraph.internal.GraphApi;
-import edu.sdsc.scigraph.internal.TinkerGraphUtil;
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
-import edu.sdsc.scigraph.neo4j.Graph;
-import edu.sdsc.scigraph.neo4j.GraphUtil;
-import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 public class GolrLoader {
 
@@ -335,7 +334,7 @@ public class GolrLoader {
             }
           } else if (value instanceof Relationship) {
             String objectPropertyIri =
-                GraphUtil.getProperty((Relationship) value, CommonProperties.URI, String.class)
+                GraphUtil.getProperty((Relationship) value, CommonProperties.IRI, String.class)
                 .get();
             Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
             serializer.serialize(key, objectProperty);

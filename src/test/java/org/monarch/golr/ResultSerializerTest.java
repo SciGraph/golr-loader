@@ -2,6 +2,7 @@ package org.monarch.golr;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
+import io.scigraph.neo4j.DirectedRelationshipType;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -16,8 +17,6 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 
 public class ResultSerializerTest extends GolrLoadSetup {
 

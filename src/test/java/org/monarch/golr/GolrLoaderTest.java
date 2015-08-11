@@ -1,5 +1,9 @@
 package org.monarch.golr;
 
+import io.scigraph.internal.CypherUtil;
+import io.scigraph.internal.GraphApi;
+import io.scigraph.neo4j.DirectedRelationshipType;
+
 import java.io.StringWriter;
 
 import org.apache.commons.lang3.StringUtils;
@@ -7,10 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.skyscreamer.jsonassert.JSONAssert;
-
-import edu.sdsc.scigraph.internal.CypherUtil;
-import edu.sdsc.scigraph.internal.GraphApi;
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 
 public class GolrLoaderTest extends GolrLoadSetup {
 

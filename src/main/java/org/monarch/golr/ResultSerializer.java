@@ -1,6 +1,8 @@
 package org.monarch.golr;
 
 import static java.util.Collections.singleton;
+import io.scigraph.neo4j.DirectedRelationshipType;
+import io.scigraph.owlapi.OwlRelationships;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -18,9 +20,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.assistedinject.Assisted;
-
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
-import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 class ResultSerializer {
 

@@ -1,13 +1,13 @@
 package org.monarch.golr.beans;
 
+import io.scigraph.neo4j.DirectedRelationshipType;
+
 import java.util.Collection;
 import java.util.Map;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
-import edu.sdsc.scigraph.neo4j.DirectedRelationshipType;
 
 public class GolrCypherQuery {
 

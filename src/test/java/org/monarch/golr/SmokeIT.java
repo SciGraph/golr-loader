@@ -1,5 +1,9 @@
 package org.monarch.golr;
 
+import io.scigraph.internal.EvidenceAspect;
+import io.scigraph.internal.GraphAspect;
+import io.scigraph.neo4j.bindings.IndicatesCurieMapping;
+
 import java.io.StringWriter;
 import java.util.Map;
 
@@ -11,10 +15,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provides;
-
-import edu.sdsc.scigraph.internal.EvidenceAspect;
-import edu.sdsc.scigraph.internal.GraphAspect;
-import edu.sdsc.scigraph.neo4j.bindings.IndicatesCurieMapping;
 
 public class SmokeIT extends GolrLoadSetup {
 

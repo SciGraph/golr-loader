@@ -1,5 +1,10 @@
 package org.monarch.golr;
 
+import io.scigraph.internal.EvidenceAspect;
+import io.scigraph.internal.GraphAspect;
+import io.scigraph.neo4j.Neo4jConfiguration;
+import io.scigraph.neo4j.Neo4jModule;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -30,11 +35,6 @@ import com.google.common.base.Optional;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-
-import edu.sdsc.scigraph.internal.EvidenceAspect;
-import edu.sdsc.scigraph.internal.GraphAspect;
-import edu.sdsc.scigraph.neo4j.Neo4jConfiguration;
-import edu.sdsc.scigraph.neo4j.Neo4jModule;
 
 public class Pipeline {
 

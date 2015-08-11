@@ -3,6 +3,11 @@ package org.monarch.golr;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.singleton;
 import io.dropwizard.jackson.Jackson;
+import io.scigraph.bbop.BbopGraph;
+import io.scigraph.bbop.BbopGraphUtil;
+import io.scigraph.internal.GraphAspect;
+import io.scigraph.internal.TinkerGraphUtil;
+import io.scigraph.owlapi.OwlRelationships;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -21,12 +26,6 @@ import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
-
-import edu.sdsc.scigraph.bbop.BbopGraph;
-import edu.sdsc.scigraph.bbop.BbopGraphUtil;
-import edu.sdsc.scigraph.internal.GraphAspect;
-import edu.sdsc.scigraph.internal.TinkerGraphUtil;
-import edu.sdsc.scigraph.owlapi.OwlRelationships;
 
 class EvidenceProcessor {
 
