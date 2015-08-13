@@ -7,6 +7,7 @@ import io.scigraph.neo4j.bindings.IndicatesCurieMapping;
 import java.io.StringWriter;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -18,6 +19,7 @@ import com.google.inject.Provides;
 
 public class SmokeIT extends GolrLoadSetup {
 
+  @Ignore
   @Test
   public void smoke() throws Exception {
     Injector i = Guice.createInjector(new GolrLoaderModule(), new AbstractModule() {
