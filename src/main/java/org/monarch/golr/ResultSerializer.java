@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.assistedinject.Assisted;
 
-class ResultSerializer {
+public class ResultSerializer {
 
   static final String ID_SUFFIX = "";
   static final String ID_CLOSURE_SUFFIX = "_closure";

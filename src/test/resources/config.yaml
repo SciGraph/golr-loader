@@ -1,0 +1,56 @@
+#query: |
+#        START chromosome = node:node_auto_index(fragment='CHR_GRCh37chr22') 
+#        MATCH (chromosome)<-[:reference]-(start_pos)<-[:begin|location*1..2]-(feature:`sequence feature`)
+#        WITH chromosome, start_pos, feature 
+#        MATCH (chromosome)<-[:reference]-(end_pos)<-[:end|location*1..2]-(feature),
+#        (chromosome)-[:RO_0002350]->(assembly)-[:RO_0002162]->(taxon) 
+#        RETURN chromosome, feature, 
+###        start_pos.`http://biohackathon.org/resource/faldo#position` as start, 
+##        end_pos.`http://biohackathon.org/resource/faldo#position` as end, 
+#        assembly.uri as assembly_uri, 
+#        assembly.label as assembly_label,
+#        taxon 
+        
+## TODO: Add direct pathway to disease when ready
+
+query: |
+        START chromosomeClass = node:node_auto_index(fragment='SO_0000340')
+        MATCH (chromosomeClass)<-[:type]-(chromosome)
+        WITH chromosome
+        MATCH (chromosome)<-[:reference]-(start_pos)<-[:begin|location*1..2]-(feature:`sequence feature`)
+        WITH chromosome, start_pos, feature
+        MATCH (chromosome)<-[:reference]-(end_pos)<-[:end|location*1..2]-(feature),
+              (chromosome)-[:RO_0002350]->(assembly)-[:RO_0002162]->(taxon)
+        RETURN chromosome, feature, start_pos, end_pos,
+        start_pos.`http://biohackathon.org/resource/faldo#position` as start,
+        end_pos.`http://biohackathon.org/resource/faldo#position` as end,
+        assembly.uri as assembly_uri,
+        assembly.label as assembly_label,
+        taxon
+        LIMIT 100
+        
+
+
+
+
+#        UNION
+#        MATCH path = (subject:gene)<-[:GENO_0000410!*0..1]-(variant)<-[:BFO_0000051!*]-(genotype)-[:RO_0002200]->(object:disease)
+#        RETURN path,
+#        subject, object,
+##        'gene' AS subject_category,
+ #       'disease' AS object_category,
+ #       'inferred' as qualifier
+ #       LIMIT 1000
+
+
+
+#query: |
+#        MATCH path=(subject:disease)-[relation:RO_0002200]->(object:Phenotype)
+#        OPTIONAL MATCH (subject)-[:subClassOf|type|part_of*0..]->(thing)-[:RO_0002162]->(subject_taxon)
+#        OPTIONAL MATCH (object)-[:subClassOf|type|part_of*0..]->(thing)-[:RO_0002162]->(object_taxon)
+#        RETURN path,
+#        subject, object, relation, subject_taxon, object_taxon, 
+#        'disease' AS subject_category,
+#        'phenotype' AS object_category,
+#        'direct' as qualifier LIMIT 100
+        

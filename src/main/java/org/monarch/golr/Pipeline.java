@@ -7,11 +7,8 @@ import io.scigraph.neo4j.Neo4jModule;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,8 +23,6 @@ import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.monarch.golr.beans.GolrCypherQuery;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
@@ -61,7 +56,7 @@ public class Pipeline {
     return options;
   }
 
-  public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException, ExecutionException {
+  public static void main(String[] args) throws Exception {
     Options options = getOptions();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;

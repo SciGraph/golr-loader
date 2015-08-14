@@ -12,7 +12,8 @@ import com.google.common.collect.Multimap;
 public class GolrCypherQuery {
 
   private String query;
-  private Multimap<String, DirectedRelationshipType> types = HashMultimap.create(); 
+  private Multimap<String, DirectedRelationshipType> types = HashMultimap.create();
+  private Multimap<String, ProcessorSpec> processingMap = HashMultimap.create();
 
   GolrCypherQuery() {}
 
@@ -24,6 +25,10 @@ public class GolrCypherQuery {
     return query;
   }
 
+  public Multimap<String, ProcessorSpec> getProcessingMap() {
+    return processingMap;
+  }
+
   public Multimap<String, DirectedRelationshipType> getTypes() {
     return types;
   }
@@ -31,7 +36,7 @@ public class GolrCypherQuery {
   public Map<String, Collection<DirectedRelationshipType>> getCollectedTypes() {
     return types.asMap();
   }
-
+  
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)

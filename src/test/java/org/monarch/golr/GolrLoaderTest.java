@@ -1,7 +1,6 @@
 package org.monarch.golr;
 
 import io.scigraph.internal.CypherUtil;
-import io.scigraph.internal.GraphApi;
 import io.scigraph.neo4j.DirectedRelationshipType;
 
 import java.io.StringWriter;
@@ -14,6 +13,8 @@ import org.monarch.golr.beans.GolrCypherQuery;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
+import com.google.inject.Guice;
+
 @Ignore
 public class GolrLoaderTest extends GolrLoadSetup {
 
@@ -23,8 +24,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
   @Before
   public void setup() {
     EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil);
-    CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
-    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil));
+    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), new ResultSerializerFactoryTestImpl(), stub, Guice.createInjector());
   }
 
   @Test
