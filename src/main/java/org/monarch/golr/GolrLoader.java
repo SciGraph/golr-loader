@@ -70,7 +70,7 @@ public class GolrLoader {
   private final CypherUtil cypherUtil;
   private final GraphApi api;
 
-  private static final RelationshipType inTaxon = DynamicRelationshipType.withName("RO_0002162");
+  private static final RelationshipType inTaxon = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162");
   private static final  String CHROMOSOME_TYPE = "http://purl.obolibrary.org/obo/SO_0000340";
 
   private static final  RelationshipType location = DynamicRelationshipType.withName("location");
@@ -109,9 +109,9 @@ public class GolrLoader {
   }
 
   private void buildTraversals() {
-    parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("BFO_0000051"));
-    hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("RO_0002525"));
-    variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("GENO_0000410"));
+    parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/BFO_0000051"));
+    hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/RO_0002525"));
+    variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/GENO_0000410"));
     taxonDescription =
         graphDb.traversalDescription().depthFirst()
         .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
@@ -164,15 +164,15 @@ public class GolrLoader {
     });
 
     diseaseDescription = graphDb.traversalDescription().depthFirst()
-        .relationships(DynamicRelationshipType.withName("RO_0002200"), Direction.OUTGOING)
-        .relationships(DynamicRelationshipType.withName("RO_0002610"), Direction.OUTGOING)
-        .relationships(DynamicRelationshipType.withName("RO_0002326"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"), Direction.OUTGOING)
         .evaluator(Evaluators.atDepth(1));
     
     phenotypeDescription = graphDb.traversalDescription().depthFirst()
-        .relationships(DynamicRelationshipType.withName("RO_0002200"), Direction.OUTGOING)
-        .relationships(DynamicRelationshipType.withName("RO_0002610"), Direction.OUTGOING)
-        .relationships(DynamicRelationshipType.withName("RO_0002326"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"), Direction.OUTGOING)
+        .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"), Direction.OUTGOING)
         .evaluator(Evaluators.fromDepth(1))
         .evaluator(Evaluators.toDepth(2));
 
