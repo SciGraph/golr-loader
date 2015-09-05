@@ -54,9 +54,9 @@ public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
       Node assnParent = createNode("http://x.org/a_assn_parent");
       assn.createRelationshipTo(assnParent, OwlRelationships.RDFS_SUBCLASS_OF);
       Node evidence = createNode("http://x.org/a_evidence");
-      assn.createRelationshipTo(evidence, DynamicRelationshipType.withName("RO_0002558"));
-      assn.createRelationshipTo(d, DynamicRelationshipType.withName("association_has_subject"));
-      assn.createRelationshipTo(e, DynamicRelationshipType.withName("association_has_object"));
+      assn.createRelationshipTo(evidence, DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002558"));
+      assn.createRelationshipTo(d, DynamicRelationshipType.withName("http://purl.org/oban/association_has_subject"));
+      assn.createRelationshipTo(e, DynamicRelationshipType.withName("http://purl.org/oban/association_has_object"));
       tx.success();
     }
   }

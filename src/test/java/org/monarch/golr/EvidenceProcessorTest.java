@@ -39,6 +39,7 @@ public class EvidenceProcessorTest extends GolrLoadSetup {
   @Test
   public void evidence() {
     List<Closure> closures = processor.getEvidence(graph);
+    System.out.println(closures);
     assertThat(ClosureUtil.collectIds(closures), contains("X:evidence"));
     assertThat(ClosureUtil.collectIdClosure(closures), contains("X:evidence"));
   }

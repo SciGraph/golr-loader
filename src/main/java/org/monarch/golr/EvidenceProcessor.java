@@ -75,7 +75,7 @@ class EvidenceProcessor {
   List<Closure> getEvidence(Graph graph) {
     List<Closure> closures = new ArrayList<>();
     for (Edge edge: graph.getEdges()) {
-      if ("RO_0002558".equals(edge.getLabel())) {
+      if ("http://purl.obolibrary.org/obo/RO_0002558".equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
         Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
         closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
@@ -87,7 +87,7 @@ class EvidenceProcessor {
   List<Closure> getSource(Graph graph) {
     List<Closure> closures = new ArrayList<>();
     for (Edge edge: graph.getEdges()) {
-      if ("source".equals(edge.getLabel())) {
+      if ("http://purl.org/dc/elements/1.1/source".equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
         Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
         closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
