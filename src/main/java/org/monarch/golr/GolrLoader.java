@@ -355,7 +355,6 @@ public class GolrLoader {
         // TODO temporary fix
         if (subjectIri != "" && objectIri != "") {
           String pathCypherQueryReplaced = query.getPathQuery().replace("SUBJECTIRI", subjectIri).replace("OBJECTIRI", objectIri);
-          System.out.println(pathCypherQueryReplaced);
           Result pathResult = cypherUtil.execute(pathCypherQueryReplaced);
 
           Map<String, Object> pathRow = pathResult.next();
