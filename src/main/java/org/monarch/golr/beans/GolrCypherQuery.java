@@ -14,7 +14,7 @@ import com.google.common.collect.Multimap;
 public class GolrCypherQuery {
 
   private String query;
-  private Multimap<String, DirectedRelationshipType> types = HashMultimap.create(); 
+  private Multimap<String, DirectedRelationshipType> types = HashMultimap.create();
 
   GolrCypherQuery() {}
 
@@ -36,23 +36,24 @@ public class GolrCypherQuery {
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("query", query)
-        .add("types", types)
-        .toString();
+    return MoreObjects.toStringHelper(this).add("query", query).add("types", types).toString();
   }
-  
+
   // TODO temporary fix
   public String getPathQuery() {
     String queryWithStart = "";
-    if(StringUtils.containsIgnoreCase(query, "start")){
-      queryWithStart = query.replaceAll("(?i)START", "START subject = node:node_auto_index(iri=\"SUBJECTIRI\"), object = node:node_auto_index(iri=\"OBJECTIRI\"), ")
-          .replaceAll("(?i)MATCH", "MATCH path=");
-    }else{
-      queryWithStart = query.replaceAll("(?i)MATCH", "START subject = node:node_auto_index(iri=\"SUBJECTIRI\"), object = node:node_auto_index(iri=\"OBJECTIRI\") MATCH path=");
+    if (StringUtils.containsIgnoreCase(query, "start")) {
+      queryWithStart =
+          query.replaceAll("(?i)START",
+              "START subject = node:node_auto_index(iri=\"SUBJECTIRI\"), object = node:node_auto_index(iri=\"OBJECTIRI\"), ").replaceAll("(?i)MATCH",
+              "MATCH path=");
+    } else {
+      queryWithStart =
+          query.replaceAll("(?i)MATCH",
+              "START subject = node:node_auto_index(iri=\"SUBJECTIRI\"), object = node:node_auto_index(iri=\"OBJECTIRI\") MATCH path=");
     }
-    return "PLANNER RULE " + queryWithStart
-        .replaceAll("(?i)RETURN DISTINCT", "RETURN DISTINCT path,");
+    String queryWithLimit = queryWithStart.replaceAll("(?i)UNION", "LIMIT 10 UNION") + "LIMIT 10";
+    return "PLANNER RULE " + queryWithLimit.replaceAll("(?i)RETURN DISTINCT", "RETURN DISTINCT path,");
   }
 
 }

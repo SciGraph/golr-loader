@@ -261,8 +261,8 @@ public class GolrLoader {
       generator.writeStartArray();
 
       // TODO temporary fix
-      String subjectIri = "";
-      String objectIri = "";
+//      String subjectIri = "";
+//      String objectIri = "";
 
       while (result.hasNext()) {
         recordCount++;
@@ -317,12 +317,12 @@ public class GolrLoader {
 
 
               // TODO temporary fix
-              if ("subject".equals(key)) {
-                subjectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
-              }
-              if ("object".equals(key)) {
-                objectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
-              }
+//              if ("subject".equals(key)) {
+//                subjectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
+//              }
+//              if ("object".equals(key)) {
+//                objectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
+//              }
             }
 
             if ("feature".equals(key)) {
@@ -353,19 +353,19 @@ public class GolrLoader {
         }
 
         // TODO temporary fix
-        if (subjectIri != "" && objectIri != "") {
-          String pathCypherQueryReplaced = query.getPathQuery().replace("SUBJECTIRI", subjectIri).replace("OBJECTIRI", objectIri);
-          Result pathResult = cypherUtil.execute(pathCypherQueryReplaced);
-
-          Map<String, Object> pathRow = pathResult.next();
-          for (Entry<String, Object> entry : pathRow.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (value instanceof Path) {
-              TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
-            }
-          }
-        }
+//        if (subjectIri != "" && objectIri != "") {
+//          String pathCypherQueryReplaced = query.getPathQuery().replace("SUBJECTIRI", subjectIri).replace("OBJECTIRI", objectIri);
+//          Result pathResult = cypherUtil.execute(pathCypherQueryReplaced);
+//
+//          Map<String, Object> pathRow = pathResult.next();
+//          for (Entry<String, Object> entry : pathRow.entrySet()) {
+//            String key = entry.getKey();
+//            Object value = entry.getValue();
+//            if (value instanceof Path) {
+//              TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
+//            }
+//          }
+//        }
 
 
         processor.addAssociations(evidenceGraph);
