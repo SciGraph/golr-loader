@@ -42,6 +42,7 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.graphdb.traversal.Uniqueness;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -114,9 +115,9 @@ public class GolrLoader {
     hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/RO_0002525"));
     variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/GENO_0000410"));
     taxonDescription =
-        graphDb.traversalDescription().depthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
+        graphDb.traversalDescription().breadthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
             .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH).relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
-            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(inTaxon, Direction.OUTGOING);
+            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(inTaxon, Direction.OUTGOING).uniqueness(Uniqueness.NONE);
     for (RelationshipType part_of : parts_of) {
       taxonDescription = taxonDescription.relationships(part_of, Direction.OUTGOING);
     }
@@ -127,8 +128,9 @@ public class GolrLoader {
       taxonDescription = taxonDescription.relationships(variant, Direction.OUTGOING);
     }
 
+
     chromosomeDescription =
-        graphDb.traversalDescription().depthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
+        graphDb.traversalDescription().breadthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
             .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH).relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
             .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(location, Direction.OUTGOING)
             .relationships(begin, Direction.OUTGOING).relationships(reference, Direction.OUTGOING);
@@ -261,8 +263,8 @@ public class GolrLoader {
       generator.writeStartArray();
 
       // TODO temporary fix
-//      String subjectIri = "";
-//      String objectIri = "";
+      // String subjectIri = "";
+      // String objectIri = "";
 
       while (result.hasNext()) {
         recordCount++;
@@ -317,12 +319,12 @@ public class GolrLoader {
 
 
               // TODO temporary fix
-//              if ("subject".equals(key)) {
-//                subjectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
-//              }
-//              if ("object".equals(key)) {
-//                objectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
-//              }
+              // if ("subject".equals(key)) {
+              // subjectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
+              // }
+              // if ("object".equals(key)) {
+              // objectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
+              // }
             }
 
             if ("feature".equals(key)) {
@@ -353,19 +355,20 @@ public class GolrLoader {
         }
 
         // TODO temporary fix
-//        if (subjectIri != "" && objectIri != "") {
-//          String pathCypherQueryReplaced = query.getPathQuery().replace("SUBJECTIRI", subjectIri).replace("OBJECTIRI", objectIri);
-//          Result pathResult = cypherUtil.execute(pathCypherQueryReplaced);
-//
-//          Map<String, Object> pathRow = pathResult.next();
-//          for (Entry<String, Object> entry : pathRow.entrySet()) {
-//            String key = entry.getKey();
-//            Object value = entry.getValue();
-//            if (value instanceof Path) {
-//              TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
-//            }
-//          }
-//        }
+        // if (subjectIri != "" && objectIri != "") {
+        // String pathCypherQueryReplaced = query.getPathQuery().replace("SUBJECTIRI",
+        // subjectIri).replace("OBJECTIRI", objectIri);
+        // Result pathResult = cypherUtil.execute(pathCypherQueryReplaced);
+        //
+        // Map<String, Object> pathRow = pathResult.next();
+        // for (Entry<String, Object> entry : pathRow.entrySet()) {
+        // String key = entry.getKey();
+        // Object value = entry.getValue();
+        // if (value instanceof Path) {
+        // TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
+        // }
+        // }
+        // }
 
 
         processor.addAssociations(evidenceGraph);
