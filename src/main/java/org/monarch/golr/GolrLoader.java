@@ -73,6 +73,9 @@ public class GolrLoader {
   private final GraphApi api;
 
   private static final RelationshipType inTaxon = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162");
+  private static final RelationshipType derivesFrom = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0001000");
+  private static final RelationshipType derivesSeqFromGene = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/GENO_0000639");
+  private static final RelationshipType hasGenotype = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/GENO_0000222");
   private static final String CHROMOSOME_TYPE = "http://purl.obolibrary.org/obo/SO_0000340";
 
   private static final RelationshipType location = DynamicRelationshipType.withName("location");
@@ -84,7 +87,7 @@ public class GolrLoader {
   private static final Label GENOTYPE_LABEL = DynamicLabel.label("genotype");
 
   private Collection<RelationshipType> parts_of;
-  private Collection<RelationshipType> hasParts;
+  private Collection<RelationshipType> subSequenceOfs;
   private Collection<RelationshipType> variants;
 
   private TraversalDescription taxonDescription;
@@ -112,7 +115,7 @@ public class GolrLoader {
 
   private void buildTraversals() {
     parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/BFO_0000051"));
-    hasParts = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/RO_0002525"));
+    subSequenceOfs = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/RO_0002525"));
     variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/GENO_0000410"));
     taxonDescription =
         graphDb.traversalDescription().breadthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
@@ -121,12 +124,14 @@ public class GolrLoader {
     for (RelationshipType part_of : parts_of) {
       taxonDescription = taxonDescription.relationships(part_of, Direction.OUTGOING);
     }
-    for (RelationshipType hasPart : hasParts) {
-      taxonDescription = taxonDescription.relationships(hasPart, Direction.INCOMING);
+    for (RelationshipType subSequenceOf : subSequenceOfs) {
+      taxonDescription = taxonDescription.relationships(subSequenceOf, Direction.INCOMING);
     }
     for (RelationshipType variant : variants) {
       taxonDescription = taxonDescription.relationships(variant, Direction.OUTGOING);
     }
+    taxonDescription = taxonDescription.relationships(hasGenotype, Direction.OUTGOING);
+    taxonDescription = taxonDescription.relationships(derivesFrom, Direction.OUTGOING);
 
 
     chromosomeDescription =
@@ -145,13 +150,19 @@ public class GolrLoader {
     chromsomeEntailment =
         api.getEntailment(chromsomeParent, new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.INCOMING), true);
 
-    geneDescription = graphDb.traversalDescription().depthFirst().relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH);
+    geneDescription =
+        graphDb.traversalDescription().depthFirst().relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
+            .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH);
     for (RelationshipType part_of : parts_of) {
       geneDescription = geneDescription.relationships(part_of, Direction.OUTGOING);
     }
     for (RelationshipType variant : variants) {
-      geneDescription = geneDescription.relationships(variant, Direction.INCOMING);
+      geneDescription = geneDescription.relationships(variant, Direction.OUTGOING);
     }
+    geneDescription = geneDescription.relationships(derivesSeqFromGene, Direction.OUTGOING);
+    geneDescription = geneDescription.relationships(hasGenotype, Direction.OUTGOING);
+    geneDescription = geneDescription.relationships(derivesFrom, Direction.OUTGOING);
+
 
     variantStrings = transform(variants, new Function<RelationshipType, String>() {
       @Override
@@ -196,9 +207,11 @@ public class GolrLoader {
     return Optional.absent();
   }
 
+  // TODO return array of all found nodes
+  // TODO and filter only cliqueLeaders
   Optional<Node> getGene(Node source) {
     for (Path path : geneDescription.traverse(source)) {
-      if (path.length() > 0 && variantStrings.contains(path.lastRelationship().getType().name())) {
+      if (path.endNode().hasLabel(GENE_LABEL)) {
         return Optional.of(path.endNode());
       }
     }
