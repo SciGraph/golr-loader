@@ -120,7 +120,7 @@ public class GolrLoader {
     taxonDescription =
         graphDb.traversalDescription().breadthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
             .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH).relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
-            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(inTaxon, Direction.OUTGOING).uniqueness(Uniqueness.NONE);
+            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(inTaxon, Direction.OUTGOING).uniqueness(Uniqueness.RELATIONSHIP_GLOBAL);
     for (RelationshipType part_of : parts_of) {
       taxonDescription = taxonDescription.relationships(part_of, Direction.OUTGOING);
     }
