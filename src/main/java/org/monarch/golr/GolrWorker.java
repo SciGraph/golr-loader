@@ -43,8 +43,8 @@ public class GolrWorker implements Callable<Boolean> {
     }
     logger.info(outputFile.getName() + " generated");
     if (solrServer.isPresent()) {
-      logger.info("Posting JSON " + outputFile.getName() + " to " + solrServer.get());
       synchronized (solrLock) {
+        logger.info("Posting JSON " + outputFile.getName() + " to " + solrServer.get());
         try {
           String result =
               Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + solrJsonUrlSuffix))
