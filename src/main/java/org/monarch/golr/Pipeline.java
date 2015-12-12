@@ -7,6 +7,7 @@ import io.scigraph.neo4j.Neo4jModule;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.cli.CommandLine;
@@ -25,6 +27,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.entity.ContentType;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -44,7 +48,7 @@ public class Pipeline {
   private static ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
   private static final String SOLR_JSON_URL_SUFFIX = "update/json?commit=true";
-  
+
   private static final Object SOLR_LOCK = new Object();
 
   static {
@@ -61,10 +65,15 @@ public class Pipeline {
     options.addOption(option);
     option = Option.builder("o").longOpt("output").required(false).hasArg().desc("An optional output file for the JSON").build();
     options.addOption(option);
+    option =
+        Option.builder("only-upload").longOpt("only-upload").required(false)
+            .desc("To only upload the JSON. The -o  and -s arguments are mandatory with this option.").build();
+    options.addOption(option);
     return options;
   }
 
-  public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException, ExecutionException, InterruptedException {
+  public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException, ExecutionException,
+      InterruptedException {
     Options options = getOptions();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
@@ -72,6 +81,7 @@ public class Pipeline {
     File filePath = null;
     Optional<String> solrServer = Optional.absent();
     Optional<String> outputFolder = Optional.absent();
+    boolean onlyUpload = false;
     try {
       cmd = parser.parse(options, args);
       neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
@@ -82,44 +92,63 @@ public class Pipeline {
       if (cmd.hasOption("o")) {
         outputFolder = Optional.of(cmd.getOptionValue("o"));
       }
+      if (cmd.hasOption("only-upload")) {
+        onlyUpload = true;
+      }
     } catch (ParseException e) {
       e.printStackTrace();
       new HelpFormatter().printHelp("GolrLoad", options);
       System.exit(-1);
     }
 
-    Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig), new AbstractModule() {
-      @Override
-      protected void configure() {
-        bind(GraphAspect.class).to(EvidenceAspect.class);
+    if (onlyUpload) {
+      logger.info("Upload only");
+      File outputPath = new File(outputFolder.get());
+      for (final File fileEntry : outputPath.listFiles()) {
+        logger.info("Posting JSON " + fileEntry.getName() + " to " + solrServer);
+        try {
+          String result =
+              Request.Post(new URI(solrServer + (solrServer.get().endsWith("/") ? "" : "/") + SOLR_JSON_URL_SUFFIX))
+                  .bodyFile(fileEntry, ContentType.APPLICATION_JSON).execute().returnContent().asString();
+          logger.info(result);
+        } catch (Exception e) {
+          logger.log(Level.SEVERE, "Failed to post JSON " + fileEntry.getName(), e);
+        }
       }
-    });
+    } else {
+      Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig), new AbstractModule() {
+        @Override
+        protected void configure() {
+          bind(GraphAspect.class).to(EvidenceAspect.class);
+        }
+      });
 
-    GolrLoader loader = i.getInstance(GolrLoader.class);
+      GolrLoader loader = i.getInstance(GolrLoader.class);
 
-    final ExecutorService pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    List<Future<Boolean>> futures = new ArrayList<>();
+      final ExecutorService pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+      List<Future<Boolean>> futures = new ArrayList<>();
 
 
-    for (final File fileEntry : filePath.listFiles()) {
-      GolrCypherQuery query = mapper.readValue(fileEntry, GolrCypherQuery.class);
-      File outputFile = null;
-      if (outputFolder.isPresent()) {
-        outputFile = new File(outputFolder.get() + "/" + fileEntry.getName() + ".json");
-      } else {
-        outputFile = Files.createTempFile("golr-load", ".json").toFile();
-        outputFile.deleteOnExit();
+      for (final File fileEntry : filePath.listFiles()) {
+        GolrCypherQuery query = mapper.readValue(fileEntry, GolrCypherQuery.class);
+        File outputFile = null;
+        if (outputFolder.isPresent()) {
+          outputFile = new File(outputFolder.get() + "/" + fileEntry.getName() + ".json");
+        } else {
+          outputFile = Files.createTempFile("golr-load", ".json").toFile();
+          outputFile.deleteOnExit();
+        }
+        final Future<Boolean> contentFuture = pool.submit(new GolrWorker(solrServer, outputFile, loader, query, SOLR_JSON_URL_SUFFIX, SOLR_LOCK));
+        futures.add(contentFuture);
       }
-      final Future<Boolean> contentFuture = pool.submit(new GolrWorker(solrServer, outputFile, loader, query, SOLR_JSON_URL_SUFFIX, SOLR_LOCK));
-      futures.add(contentFuture);
-    }
 
-    for (Future<Boolean> future : futures) {
-      future.get();
-    }
-    pool.shutdown();
-    pool.awaitTermination(10, TimeUnit.DAYS);
+      for (Future<Boolean> future : futures) {
+        future.get();
+      }
+      pool.shutdown();
+      pool.awaitTermination(10, TimeUnit.DAYS);
 
+    }
     logger.info("Golr load completed");
 
   }
