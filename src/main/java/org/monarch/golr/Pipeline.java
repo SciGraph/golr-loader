@@ -66,7 +66,7 @@ public class Pipeline {
     option = Option.builder("o").longOpt("output").required(false).hasArg().desc("An optional output file for the JSON").build();
     options.addOption(option);
     option =
-        Option.builder("only-upload").longOpt("only-upload").required(false)
+        Option.builder("onlyupload").longOpt("onlyupload").required(false)
             .desc("To only upload the JSON. The -o  and -s arguments are mandatory with this option.").build();
     options.addOption(option);
     return options;
