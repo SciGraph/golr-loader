@@ -92,7 +92,7 @@ public class Pipeline {
       if (cmd.hasOption("o")) {
         outputFolder = Optional.of(cmd.getOptionValue("o"));
       }
-      if (cmd.hasOption("only-upload")) {
+      if (cmd.hasOption("onlyupload")) {
         onlyUpload = true;
       }
     } catch (ParseException e) {
