@@ -108,7 +108,7 @@ public class Pipeline {
         logger.info("Posting JSON " + fileEntry.getName() + " to " + solrServer);
         try {
           String result =
-              Request.Post(new URI(solrServer + (solrServer.get().endsWith("/") ? "" : "/") + SOLR_JSON_URL_SUFFIX))
+              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + SOLR_JSON_URL_SUFFIX))
                   .bodyFile(fileEntry, ContentType.APPLICATION_JSON).execute().returnContent().asString();
           logger.info(result);
         } catch (Exception e) {
