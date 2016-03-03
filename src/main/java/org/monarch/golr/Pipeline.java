@@ -84,16 +84,18 @@ public class Pipeline {
     boolean onlyUpload = false;
     try {
       cmd = parser.parse(options, args);
-      neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
-      filePath = new File(cmd.getOptionValue("q"));
+      if (cmd.hasOption("onlyupload")) {
+        onlyUpload = true;
+      }
       if (cmd.hasOption("s")) {
         solrServer = Optional.of(cmd.getOptionValue("s"));
       }
       if (cmd.hasOption("o")) {
         outputFolder = Optional.of(cmd.getOptionValue("o"));
       }
-      if (cmd.hasOption("onlyupload")) {
-        onlyUpload = true;
+      if (!onlyUpload) {
+        neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
+        filePath = new File(cmd.getOptionValue("q"));
       }
     } catch (ParseException e) {
       e.printStackTrace();
