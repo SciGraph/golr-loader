@@ -105,7 +105,7 @@ public class Pipeline {
       logger.info("Upload only");
       File outputPath = new File(outputFolder.get());
       for (final File fileEntry : outputPath.listFiles()) {
-        logger.info("Posting JSON " + fileEntry.getName() + " to " + solrServer);
+        logger.info("Posting JSON " + fileEntry.getName() + " to " + solrServer.get());
         try {
           String result =
               Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + SOLR_JSON_URL_SUFFIX))
