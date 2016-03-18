@@ -37,10 +37,9 @@ public class GolrWorker implements Callable<Boolean> {
   @Override
   public Boolean call() throws Exception {
     logger.info("Writing JSON to: " + outputFile.getAbsolutePath());
-    try (FileWriter writer = new FileWriter(outputFile)) {
-      long recordCount = loader.process(query, writer);
-      logger.info("Wrote " + recordCount + " documents to: " + outputFile.getAbsolutePath());
-    }
+    FileWriter writer = new FileWriter(outputFile);
+    long recordCount = loader.process(query, writer);
+    logger.info("Wrote " + recordCount + " documents to: " + outputFile.getAbsolutePath());
     logger.info(outputFile.getName() + " generated");
     if (solrServer.isPresent()) {
       synchronized (solrLock) {

@@ -12,20 +12,34 @@ import io.scigraph.neo4j.Graph;
 import io.scigraph.neo4j.GraphUtil;
 import io.scigraph.owlapi.OwlRelationships;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ClassUtils;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.Direction;
@@ -46,6 +60,7 @@ import org.neo4j.graphdb.traversal.Uniqueness;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -54,7 +69,10 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.io.Files;
 import com.google.common.io.Resources;
+import com.tinkerpop.blueprints.Edge;
+import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 
 public class GolrLoader {
@@ -120,7 +138,8 @@ public class GolrLoader {
     taxonDescription =
         graphDb.traversalDescription().breadthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
             .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH).relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
-            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(inTaxon, Direction.OUTGOING).uniqueness(Uniqueness.RELATIONSHIP_GLOBAL);
+            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(inTaxon, Direction.OUTGOING)
+            .uniqueness(Uniqueness.RELATIONSHIP_GLOBAL);
     for (RelationshipType part_of : parts_of) {
       taxonDescription = taxonDescription.relationships(part_of, Direction.OUTGOING);
     }
@@ -269,142 +288,210 @@ public class GolrLoader {
       }
     });
 
+    DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose().make();
+    ConcurrentMap<Pair, String> resultsSerializable = db.createHashMap("results").make();
+    ConcurrentMap<Pair, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
+
     try (Transaction tx = graphDb.beginTx()) {
-      Result result = cypherUtil.execute(query.getQuery());
       JsonGenerator generator = new JsonFactory().createGenerator(writer);
       ResultSerializer serializer = factory.create(generator);
       generator.writeStartArray();
 
-      // TODO temporary fix
-      // String subjectIri = "";
-      // String objectIri = "";
+      Result result = cypherUtil.execute(query.getQuery());
 
       while (result.hasNext()) {
         recordCount++;
-        generator.writeStartObject();
+
         Map<String, Object> row = result.next();
-        com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
-        Set<Long> ignoredNodes = new HashSet<>();
-        boolean emitEvidence = true;
-        for (Entry<String, Object> entry : row.entrySet()) {
-          String key = entry.getKey();
-          Object value = entry.getValue();
 
-          if (null == value) {
-            continue;
-          }
+        String subjectIri = (String) ((Node) row.get("subject")).getProperty(NodeProperties.IRI);
+        String objectIri = (String) ((Node) row.get("object")).getProperty(NodeProperties.IRI);
 
-          // Add evidence
-          if (value instanceof PropertyContainer) {
-            TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
-          } else if (value instanceof Path) {
-            TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
-          }
+        Pair pair = new Pair(subjectIri, objectIri);
 
-          if (value instanceof Node) {
-            ignoredNodes.add(((Node) value).getId());
+        String existingResult = resultsSerializable.get(pair);
+        if (existingResult == null) {
+          Set<Long> ignoredNodes = new HashSet<>();
+          Writer stringWriter = new StringWriter();
+          JsonGenerator stringGenerator = new JsonFactory().createGenerator(stringWriter);
+          ResultSerializer stringSerializer = factory.create(stringGenerator);
+          boolean emitEvidence = true;
+          // mapDB cannot serialize and deserialize TinkerGraphs correctly,
+          // we have to persist them on disk ourselves
+          String tmpDir = getNewTmpDirForTinkerGraph();
+          com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(tmpDir);
 
-            // TODO: Clean this up
-            if ("subject".equals(key) || "object".equals(key)) {
-              Node node = (Node) value;
-              Optional<Node> taxon = taxonCache.get(node);
-              if (taxon.isPresent()) {
-                serializer.serialize(key + "_taxon", taxon.get());
-              }
-              if (node.hasLabel(GENE_LABEL) || node.hasLabel(VARIANT_LABEL) || node.hasLabel(GENOTYPE_LABEL)) {
-                // Attempt to add gene and chromosome for monarch-initiative/monarch-app/#746
-                if (node.hasLabel(GENE_LABEL)) {
-                  serializer.serialize(key + "_gene", node);
-                } else {
-                  Optional<Node> gene = geneCache.get(node);
-                  if (gene.isPresent()) {
-                    serializer.serialize(key + "_gene", gene.get());
+          stringGenerator.writeStartObject();
+
+          for (Entry<String, Object> entry : row.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            if (null == value) {
+              continue;
+            }
+
+            // Add evidence
+            if (value instanceof PropertyContainer) {
+              TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
+            } else if (value instanceof Path) {
+              TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
+            } else if (value instanceof Node) {
+              ignoredNodes.add(((Node) value).getId());
+            }
+
+            if (value instanceof Node) {
+
+              // TODO: Clean this up
+              if ("subject".equals(key) || "object".equals(key)) {
+                Node node = (Node) value;
+                Optional<Node> taxon = taxonCache.get(node);
+                if (taxon.isPresent()) {
+                  stringSerializer.serialize(key + "_taxon", taxon.get());
+                }
+                if (node.hasLabel(GENE_LABEL) || node.hasLabel(VARIANT_LABEL) || node.hasLabel(GENOTYPE_LABEL)) {
+                  // Attempt to add gene and chromosome for monarch-initiative/monarch-app/#746
+                  if (node.hasLabel(GENE_LABEL)) {
+                    stringSerializer.serialize(key + "_gene", node);
+                  } else {
+                    Optional<Node> gene = geneCache.get(node);
+                    if (gene.isPresent()) {
+                      stringSerializer.serialize(key + "_gene", gene.get());
+                    }
+                  }
+
+                  Optional<Node> chromosome = chromosomeCache.get(node);
+                  if (chromosome.isPresent()) {
+                    stringSerializer.serialize(key + "_chromosome", chromosome.get());
                   }
                 }
-
-                Optional<Node> chromosome = chromosomeCache.get(node);
-                if (chromosome.isPresent()) {
-                  serializer.serialize(key + "_chromosome", chromosome.get());
-                }
-
               }
 
+              if ("feature".equals(key)) {
+                // Add disease and phenotype for feature
+                stringSerializer.serialize("disease", getDiseases((Node) value));
+                stringSerializer.serialize("phenotype", getPhenotypes((Node) value));
+              }
 
-
-              // TODO temporary fix
-              // if ("subject".equals(key)) {
-              // subjectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
-              // }
-              // if ("object".equals(key)) {
-              // objectIri = (String) ((Node) value).getProperty(NodeProperties.IRI);
-              // }
+              if (query.getCollectedTypes().containsKey(key)) {
+                stringSerializer.serialize(key, singleton((Node) value), query.getCollectedTypes().get(key));
+              } else {
+                stringSerializer.serialize(key, value);
+              }
+            } else if (value instanceof Relationship) {
+              String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.IRI, String.class).get();
+              Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
+              stringSerializer.serialize(key, objectProperty);
+            } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
+              // Serialize primitive types and Strings
+              if ((key.equals("subject_category") || key.equals("object_category")) && value.equals("ontology")) {
+                emitEvidence = false;
+              }
+              stringSerializer.serialize(key, value);
             }
-
-            if ("feature".equals(key)) {
-              // Add disease and phenotype for feature
-              serializer.serialize("disease", getDiseases((Node) value));
-              serializer.serialize("phenotype", getPhenotypes((Node) value));
-
-            }
-
-            if (query.getCollectedTypes().containsKey(key)) {
-              serializer.serialize(key, singleton((Node) value), query.getCollectedTypes().get(key));
-            } else {
-              serializer.serialize(key, value);
-            }
-          } else if (value instanceof Relationship) {
-            String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.IRI, String.class).get();
-            Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
-            serializer.serialize(key, objectProperty);
-          } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
-            // Serialize primitive types and Strings
-            if ((key.equals("subject_category") || key.equals("object_category")) && value.equals("ontology")) {
-              emitEvidence = false;
-            }
-            serializer.serialize(key, value);
           }
 
+          stringGenerator.writeEndObject();
+          stringGenerator.close();
 
+          evidenceGraph.shutdown();
+
+          resultsSerializable.put(pair, stringWriter.toString());
+
+          resultsGraph.put(pair, new EvidenceGraphInfo(tmpDir, emitEvidence, ignoredNodes));
+
+        } else {
+          EvidenceGraphInfo pairGraph = resultsGraph.get(pair);
+          com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(pairGraph.graphPath);
+          Set<Long> ignoredNodes = pairGraph.ignoredNodes;
+          for (Entry<String, Object> entry : row.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            if (null == value) {
+              continue;
+            }
+
+            // Add evidence
+            if (value instanceof PropertyContainer) {
+              TinkerGraphUtil.addElement(evidenceGraph, (PropertyContainer) value);
+            } else if (value instanceof Path) {
+              TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
+            } else if (value instanceof Node) {
+              ignoredNodes.add(((Node) value).getId());
+            }
+          }
+          evidenceGraph.shutdown();
+
+          // TODO #172
+          // Due to a TinkerGraph bug, we have to recreate a folder for the modified graph
+          // https://github.com/tinkerpop/blueprints/issues/285
+          String newTmpDir = getNewTmpDirForTinkerGraph();
+          com.tinkerpop.blueprints.Graph newGraph = new TinkerGraph(newTmpDir);
+          TinkerGraphUtil.addGraph(newGraph, evidenceGraph);
+          newGraph.shutdown();
+          FileUtils.deleteDirectory(new File(pairGraph.graphPath));
+          resultsGraph.put(pair, new EvidenceGraphInfo(newTmpDir, pairGraph.emitEvidence, ignoredNodes));
         }
 
-        // TODO temporary fix
-        // if (subjectIri != "" && objectIri != "") {
-        // String pathCypherQueryReplaced = query.getPathQuery().replace("SUBJECTIRI",
-        // subjectIri).replace("OBJECTIRI", objectIri);
-        // Result pathResult = cypherUtil.execute(pathCypherQueryReplaced);
-        //
-        // Map<String, Object> pathRow = pathResult.next();
-        // for (Entry<String, Object> entry : pathRow.entrySet()) {
-        // String key = entry.getKey();
-        // Object value = entry.getValue();
-        // if (value instanceof Path) {
-        // TinkerGraphUtil.addPath(evidenceGraph, (Path) value);
-        // }
-        // }
-        // }
-
-
-        processor.addAssociations(evidenceGraph);
-        serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
-
-        // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
-        // Don't emit evidence for ontology sources
-        if (emitEvidence) {
-          List<Closure> evidenceObjectClosure = processor.getEvidenceObject(evidenceGraph, ignoredNodes);
-          serializer.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
-          List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
-          serializer.writeQuint(EVIDENCE_FIELD, evidenceClosure);
-          List<Closure> sourceClosure = processor.getSource(evidenceGraph);
-          serializer.writeQuint(SOURCE_FIELD, sourceClosure);
-          serializer.writeArray(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
-        }
-        generator.writeEndObject();
       }
+
+      for (Entry<Pair, String> resultSerializable : resultsSerializable.entrySet()) {
+        generator.writeStartObject();
+
+        Pair p = resultSerializable.getKey();
+        EvidenceGraphInfo pairGraph = resultsGraph.get(p);
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> existingJson = mapper.readValue(resultSerializable.getValue(), Map.class);
+
+
+        for (Entry<String, Object> entry : existingJson.entrySet()) {
+          serializer.serialize(entry.getKey(), entry.getValue());
+        }
+
+        if (pairGraph != null) {
+          com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(pairGraph.graphPath);
+          processor.addAssociations(evidenceGraph);
+          serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+
+          // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
+          // Don't emit evidence for ontology sources
+          if (pairGraph.emitEvidence) {
+            List<Closure> evidenceObjectClosure = processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
+            serializer.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
+            List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
+            serializer.writeQuint(EVIDENCE_FIELD, evidenceClosure);
+            List<Closure> sourceClosure = processor.getSource(evidenceGraph);
+            serializer.writeQuint(SOURCE_FIELD, sourceClosure);
+            serializer.writeArray(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
+          }
+        } else {
+          System.out.println("No evidence graph");
+        }
+
+        generator.writeEndObject();
+        generator.writeRaw('\n');
+      }
+
       generator.writeEndArray();
       generator.close();
       tx.success();
     }
+
+    for (Entry<Pair, EvidenceGraphInfo> resultGraph : resultsGraph.entrySet()) {
+      File tmpDir = new File(resultGraph.getValue().graphPath);
+      FileUtils.deleteDirectory(tmpDir);
+    }
+
+    db.close();
     return recordCount;
   }
 
+  private String getNewTmpDirForTinkerGraph() {
+    File newTmpDirFile = Files.createTempDir();
+    String newTmpDir = newTmpDirFile.getAbsolutePath();
+    newTmpDirFile.delete(); // TinkerGraph needs to create the directory
+    return newTmpDir;
+  }
 }

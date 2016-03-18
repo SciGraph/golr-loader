@@ -6,6 +6,7 @@ import io.scigraph.neo4j.Neo4jConfiguration;
 import io.scigraph.neo4j.Neo4jModule;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
