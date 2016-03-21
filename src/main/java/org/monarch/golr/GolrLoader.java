@@ -320,7 +320,7 @@ public class GolrLoader {
           // we have to persist them on disk ourselves
           String tmpDir = EvidenceGraphInfo.getNewTmpDirForTinkerGraph();
           com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(tmpDir);
-
+          
           stringGenerator.writeStartObject();
 
           for (Entry<String, Object> entry : row.entrySet()) {

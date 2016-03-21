@@ -1,7 +1,9 @@
 package org.monarch.golr;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Path;
 import java.util.Set;
 
 import com.google.common.io.Files;
@@ -41,8 +43,9 @@ public class EvidenceGraphInfo implements Serializable {
     return "(" + graphPath + ", " + emitEvidence + ", " + ignoredNodes + ")";
   }
 
-  public synchronized static String getNewTmpDirForTinkerGraph() {
-    File newTmpDirFile = Files.createTempDir();
+  public synchronized static String getNewTmpDirForTinkerGraph() throws IOException {
+    Path p = java.nio.file.Files.createTempDirectory("tinkergraph");
+    File newTmpDirFile = p.toFile();
     String newTmpDir = newTmpDirFile.getAbsolutePath();
     newTmpDirFile.delete(); // TinkerGraph needs to create the directory
     return newTmpDir;
