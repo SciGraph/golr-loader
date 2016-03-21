@@ -318,7 +318,7 @@ public class GolrLoader {
           boolean emitEvidence = true;
           // mapDB cannot serialize and deserialize TinkerGraphs correctly,
           // we have to persist them on disk ourselves
-          String tmpDir = getNewTmpDirForTinkerGraph();
+          String tmpDir = EvidenceGraphInfo.getNewTmpDirForTinkerGraph();
           com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(tmpDir);
 
           stringGenerator.writeStartObject();
@@ -426,7 +426,7 @@ public class GolrLoader {
           // TODO #172
           // Due to a TinkerGraph bug, we have to recreate a folder for the modified graph
           // https://github.com/tinkerpop/blueprints/issues/285
-          String newTmpDir = getNewTmpDirForTinkerGraph();
+          String newTmpDir = EvidenceGraphInfo.getNewTmpDirForTinkerGraph();
           com.tinkerpop.blueprints.Graph newGraph = new TinkerGraph(newTmpDir);
           TinkerGraphUtil.addGraph(newGraph, evidenceGraph);
           newGraph.shutdown();
@@ -488,10 +488,4 @@ public class GolrLoader {
     return recordCount;
   }
 
-  private String getNewTmpDirForTinkerGraph() {
-    File newTmpDirFile = Files.createTempDir();
-    String newTmpDir = newTmpDirFile.getAbsolutePath();
-    newTmpDirFile.delete(); // TinkerGraph needs to create the directory
-    return newTmpDir;
-  }
 }

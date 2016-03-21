@@ -1,7 +1,10 @@
 package org.monarch.golr;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Set;
+
+import com.google.common.io.Files;
 
 public class EvidenceGraphInfo implements Serializable {
 
@@ -36,5 +39,12 @@ public class EvidenceGraphInfo implements Serializable {
   @Override
   public String toString() {
     return "(" + graphPath + ", " + emitEvidence + ", " + ignoredNodes + ")";
+  }
+
+  public synchronized static String getNewTmpDirForTinkerGraph() {
+    File newTmpDirFile = Files.createTempDir();
+    String newTmpDir = newTmpDirFile.getAbsolutePath();
+    newTmpDirFile.delete(); // TinkerGraph needs to create the directory
+    return newTmpDir;
   }
 }
