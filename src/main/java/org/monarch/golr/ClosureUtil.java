@@ -47,7 +47,7 @@ class ClosureUtil {
     this.graphDb = graphDb;
     this.curieUtil = curieUtil;
     closureCache = CacheBuilder.newBuilder()
-        .maximumSize(500_000)
+        .maximumSize(1_000_000)
         .build(new CacheLoader<ClosureKey, Closure>() {
           @Override
           public Closure load(ClosureKey source) throws Exception {

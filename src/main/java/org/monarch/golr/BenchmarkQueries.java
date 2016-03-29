@@ -73,7 +73,7 @@ public class BenchmarkQueries {
 
   }
 
-  public static int runGolrQuery(GolrCypherQuery query, GolrLoader loader, File file) throws IOException, ExecutionException {
+  public static int runGolrQuery(GolrCypherQuery query, GolrLoader loader, File file) throws IOException, ExecutionException, ClassNotFoundException {
     FileWriter writer = new FileWriter(new File(file.getAbsolutePath() + ".json"));
     int count = 0;
     count = toIntExact(loader.process(query, writer));

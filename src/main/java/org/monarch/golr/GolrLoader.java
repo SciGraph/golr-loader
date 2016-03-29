@@ -263,7 +263,7 @@ public class GolrLoader {
     return phenotypes;
   }
 
-  long process(GolrCypherQuery query, Writer writer) throws IOException, ExecutionException {
+  long process(GolrCypherQuery query, Writer writer) throws IOException, ExecutionException, ClassNotFoundException {
     long recordCount = 0;
 
     LoadingCache<Node, Optional<Node>> taxonCache = CacheBuilder.newBuilder().maximumSize(100_000).build(new CacheLoader<Node, Optional<Node>>() {
@@ -288,7 +288,7 @@ public class GolrLoader {
       }
     });
 
-    DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose().make();
+    DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose().transactionDisable().cacheSize(1000000).make();
     ConcurrentMap<Pair, String> resultsSerializable = db.createHashMap("results").make();
     ConcurrentMap<Pair, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
 
@@ -316,11 +316,8 @@ public class GolrLoader {
           JsonGenerator stringGenerator = new JsonFactory().createGenerator(stringWriter);
           ResultSerializer stringSerializer = factory.create(stringGenerator);
           boolean emitEvidence = true;
-          // mapDB cannot serialize and deserialize TinkerGraphs correctly,
-          // we have to persist them on disk ourselves
-          String tmpDir = EvidenceGraphInfo.getNewTmpDirForTinkerGraph();
-          com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(tmpDir);
-          
+          com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
+
           stringGenerator.writeStartObject();
 
           for (Entry<String, Object> entry : row.entrySet()) {
@@ -394,15 +391,12 @@ public class GolrLoader {
           stringGenerator.writeEndObject();
           stringGenerator.close();
 
-          evidenceGraph.shutdown();
-
           resultsSerializable.put(pair, stringWriter.toString());
 
-          resultsGraph.put(pair, new EvidenceGraphInfo(tmpDir, emitEvidence, ignoredNodes));
-
+          resultsGraph.put(pair, new EvidenceGraphInfo(evidenceGraph, emitEvidence, ignoredNodes));
         } else {
           EvidenceGraphInfo pairGraph = resultsGraph.get(pair);
-          com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(pairGraph.graphPath);
+          com.tinkerpop.blueprints.Graph evidenceGraph = EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
           Set<Long> ignoredNodes = pairGraph.ignoredNodes;
           for (Entry<String, Object> entry : row.entrySet()) {
             String key = entry.getKey();
@@ -421,17 +415,7 @@ public class GolrLoader {
               ignoredNodes.add(((Node) value).getId());
             }
           }
-          evidenceGraph.shutdown();
-
-          // TODO #172
-          // Due to a TinkerGraph bug, we have to recreate a folder for the modified graph
-          // https://github.com/tinkerpop/blueprints/issues/285
-          String newTmpDir = EvidenceGraphInfo.getNewTmpDirForTinkerGraph();
-          com.tinkerpop.blueprints.Graph newGraph = new TinkerGraph(newTmpDir);
-          TinkerGraphUtil.addGraph(newGraph, evidenceGraph);
-          newGraph.shutdown();
-          FileUtils.deleteDirectory(new File(pairGraph.graphPath));
-          resultsGraph.put(pair, new EvidenceGraphInfo(newTmpDir, pairGraph.emitEvidence, ignoredNodes));
+          resultsGraph.put(pair, new EvidenceGraphInfo(evidenceGraph, pairGraph.emitEvidence, ignoredNodes));
         }
 
       }
@@ -451,7 +435,7 @@ public class GolrLoader {
         }
 
         if (pairGraph != null) {
-          com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph(pairGraph.graphPath);
+          com.tinkerpop.blueprints.Graph evidenceGraph = EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
           processor.addAssociations(evidenceGraph);
           serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
 
@@ -477,11 +461,6 @@ public class GolrLoader {
       generator.writeEndArray();
       generator.close();
       tx.success();
-    }
-
-    for (Entry<Pair, EvidenceGraphInfo> resultGraph : resultsGraph.entrySet()) {
-      File tmpDir = new File(resultGraph.getValue().graphPath);
-      FileUtils.deleteDirectory(tmpDir);
     }
 
     db.close();
