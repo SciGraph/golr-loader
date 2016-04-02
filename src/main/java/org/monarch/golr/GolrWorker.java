@@ -7,8 +7,16 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.ssl.SSLContext;
+
+import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Request;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 import com.google.common.base.Optional;
@@ -45,9 +53,24 @@ public class GolrWorker implements Callable<Boolean> {
       synchronized (solrLock) {
         logger.info("Posting JSON " + outputFile.getName() + " to " + solrServer.get());
         try {
-          String result =
-              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + solrJsonUrlSuffix))
-                  .bodyFile(outputFile, ContentType.APPLICATION_JSON).execute().returnContent().asString();
+          // ignore ssl certs because letsencrypt is not supported by Oracle yet
+          SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
+            @Override
+            public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
+              // TODO Auto-generated method stub
+              return true;
+            }
+          }).build();
+
+          CloseableHttpClient httpClient =
+              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).setSSLContext(sslContext).build();
+          Request request =
+              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + solrJsonUrlSuffix)).bodyFile(outputFile,
+                  ContentType.APPLICATION_JSON);
+
+          Executor executor = Executor.newInstance(httpClient);
+          String result = executor.execute(request).returnContent().asString();
+
           logger.info(result);
         } catch (Exception e) {
           logger.log(Level.SEVERE, "Failed to post JSON " + outputFile.getName(), e);

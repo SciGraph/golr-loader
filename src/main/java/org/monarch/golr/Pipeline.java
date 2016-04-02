@@ -6,11 +6,13 @@ import io.scigraph.neo4j.Neo4jConfiguration;
 import io.scigraph.neo4j.Neo4jModule;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -21,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -28,8 +32,14 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Request;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -74,7 +84,7 @@ public class Pipeline {
   }
 
   public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException, ExecutionException,
-      InterruptedException {
+      InterruptedException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
     Options options = getOptions();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
@@ -104,15 +114,30 @@ public class Pipeline {
       System.exit(-1);
     }
 
+
     if (onlyUpload) {
       logger.info("Upload only");
+      // ignore ssl certs because letsencrypt is not supported by Oracle yet
+      SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
+        @Override
+        public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
+          // TODO Auto-generated method stub
+          return true;
+        }
+      }).build();
       File outputPath = new File(outputFolder.get());
       for (final File fileEntry : outputPath.listFiles()) {
         logger.info("Posting JSON " + fileEntry.getName() + " to " + solrServer.get());
         try {
-          String result =
-              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + SOLR_JSON_URL_SUFFIX))
-                  .bodyFile(fileEntry, ContentType.APPLICATION_JSON).execute().returnContent().asString();
+          CloseableHttpClient httpClient =
+              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).setSSLContext(sslContext).build();
+          Request request =
+              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + SOLR_JSON_URL_SUFFIX)).bodyFile(fileEntry,
+                  ContentType.APPLICATION_JSON);
+
+          Executor executor = Executor.newInstance(httpClient);
+          String result = executor.execute(request).returnContent().asString();
+
           logger.info(result);
         } catch (Exception e) {
           logger.log(Level.SEVERE, "Failed to post JSON " + fileEntry.getName(), e);
