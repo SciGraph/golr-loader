@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -32,7 +33,8 @@ public class GolrWorker implements Callable<Boolean> {
   String solrJsonUrlSuffix;
   Object solrLock;
 
-  public GolrWorker(Optional<String> solrServer, File outputFile, GolrLoader loader, GolrCypherQuery query, String solrJsonUrlSuffix, Object solrLock) {
+  public GolrWorker(Optional<String> solrServer, File outputFile, GolrLoader loader,
+      GolrCypherQuery query, String solrJsonUrlSuffix, Object solrLock) {
     this.solrServer = solrServer;
     this.outputFile = outputFile;
     this.loader = loader;
@@ -46,7 +48,9 @@ public class GolrWorker implements Callable<Boolean> {
   public Boolean call() throws Exception {
     logger.info("Writing JSON to: " + outputFile.getAbsolutePath());
     FileWriter writer = new FileWriter(outputFile);
-    long recordCount = loader.process(query, writer);
+    long recordCount =
+        loader.process(query, writer,
+            Optional.of(FilenameUtils.removeExtension(outputFile.getName())));
     logger.info("Wrote " + recordCount + " documents to: " + outputFile.getAbsolutePath());
     logger.info(outputFile.getName() + " generated");
     if (solrServer.isPresent()) {
@@ -54,19 +58,22 @@ public class GolrWorker implements Callable<Boolean> {
         logger.info("Posting JSON " + outputFile.getName() + " to " + solrServer.get());
         try {
           // ignore ssl certs because letsencrypt is not supported by Oracle yet
-          SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
-            @Override
-            public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
-              // TODO Auto-generated method stub
-              return true;
-            }
-          }).build();
+          SSLContext sslContext =
+              new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
+                @Override
+                public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
+                    throws java.security.cert.CertificateException {
+                  return true;
+                }
+              }).build();
 
           CloseableHttpClient httpClient =
-              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).setSSLContext(sslContext).build();
+              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                  .setSSLContext(sslContext).build();
           Request request =
-              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + solrJsonUrlSuffix)).bodyFile(outputFile,
-                  ContentType.APPLICATION_JSON);
+              Request.Post(
+                  new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/")
+                      + solrJsonUrlSuffix)).bodyFile(outputFile, ContentType.APPLICATION_JSON);
 
           Executor executor = Executor.newInstance(httpClient);
           String result = executor.execute(request).returnContent().asString();

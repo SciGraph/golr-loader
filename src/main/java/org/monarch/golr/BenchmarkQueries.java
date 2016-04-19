@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.io.FilenameUtils;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Result;
@@ -23,6 +24,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -76,7 +78,7 @@ public class BenchmarkQueries {
   public static int runGolrQuery(GolrCypherQuery query, GolrLoader loader, File file) throws IOException, ExecutionException, ClassNotFoundException {
     FileWriter writer = new FileWriter(new File(file.getAbsolutePath() + ".json"));
     int count = 0;
-    count = toIntExact(loader.process(query, writer));
+    count = toIntExact(loader.process(query, writer, Optional.of(FilenameUtils.removeExtension(file.getName()))));
     return count;
   }
 

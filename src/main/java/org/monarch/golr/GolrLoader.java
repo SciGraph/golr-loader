@@ -12,21 +12,12 @@ import io.scigraph.neo4j.Graph;
 import io.scigraph.neo4j.GraphUtil;
 import io.scigraph.owlapi.OwlRelationships;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -69,10 +59,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.io.Files;
 import com.google.common.io.Resources;
-import com.tinkerpop.blueprints.Edge;
-import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 
 public class GolrLoader {
@@ -90,10 +77,14 @@ public class GolrLoader {
   private final CypherUtil cypherUtil;
   private final GraphApi api;
 
-  private static final RelationshipType inTaxon = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162");
-  private static final RelationshipType derivesFrom = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0001000");
-  private static final RelationshipType derivesSeqFromGene = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/GENO_0000639");
-  private static final RelationshipType hasGenotype = DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/GENO_0000222");
+  private static final RelationshipType inTaxon = DynamicRelationshipType
+      .withName("http://purl.obolibrary.org/obo/RO_0002162");
+  private static final RelationshipType derivesFrom = DynamicRelationshipType
+      .withName("http://purl.obolibrary.org/obo/RO_0001000");
+  private static final RelationshipType derivesSeqFromGene = DynamicRelationshipType
+      .withName("http://purl.obolibrary.org/obo/GENO_0000639");
+  private static final RelationshipType hasGenotype = DynamicRelationshipType
+      .withName("http://purl.obolibrary.org/obo/GENO_0000222");
   private static final String CHROMOSOME_TYPE = "http://purl.obolibrary.org/obo/SO_0000340";
 
   private static final RelationshipType location = DynamicRelationshipType.withName("location");
@@ -117,8 +108,8 @@ public class GolrLoader {
   private Collection<String> variantStrings;
 
   @Inject
-  GolrLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil, ResultSerializerFactory factory, EvidenceProcessor processor,
-      GraphApi api) {
+  GolrLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil,
+      ResultSerializerFactory factory, EvidenceProcessor processor, GraphApi api) {
     this.graphDb = graphDb;
     this.cypherUtil = cypherUtil;
     this.graph = graph;
@@ -132,14 +123,22 @@ public class GolrLoader {
   }
 
   private void buildTraversals() {
-    parts_of = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/BFO_0000051"));
-    subSequenceOfs = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/RO_0002525"));
-    variants = cypherUtil.getEntailedRelationshipTypes(Collections.singleton("http://purl.obolibrary.org/obo/GENO_0000410"));
+    parts_of =
+        cypherUtil.getEntailedRelationshipTypes(Collections
+            .singleton("http://purl.obolibrary.org/obo/BFO_0000051"));
+    subSequenceOfs =
+        cypherUtil.getEntailedRelationshipTypes(Collections
+            .singleton("http://purl.obolibrary.org/obo/RO_0002525"));
+    variants =
+        cypherUtil.getEntailedRelationshipTypes(Collections
+            .singleton("http://purl.obolibrary.org/obo/GENO_0000410"));
     taxonDescription =
-        graphDb.traversalDescription().breadthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
-            .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH).relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
-            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(inTaxon, Direction.OUTGOING)
-            .uniqueness(Uniqueness.RELATIONSHIP_GLOBAL);
+        graphDb.traversalDescription().breadthFirst()
+            .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
+            .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
+            .relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
+            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
+            .relationships(inTaxon, Direction.OUTGOING).uniqueness(Uniqueness.RELATIONSHIP_GLOBAL);
     for (RelationshipType part_of : parts_of) {
       taxonDescription = taxonDescription.relationships(part_of, Direction.OUTGOING);
     }
@@ -154,10 +153,13 @@ public class GolrLoader {
 
 
     chromosomeDescription =
-        graphDb.traversalDescription().breadthFirst().relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
-            .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH).relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
-            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING).relationships(location, Direction.OUTGOING)
-            .relationships(begin, Direction.OUTGOING).relationships(reference, Direction.OUTGOING);
+        graphDb.traversalDescription().breadthFirst()
+            .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
+            .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
+            .relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
+            .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
+            .relationships(location, Direction.OUTGOING).relationships(begin, Direction.OUTGOING)
+            .relationships(reference, Direction.OUTGOING);
 
     Optional<Long> nodeId = graph.getNode(CHROMOSOME_TYPE);
     if (!nodeId.isPresent()) {
@@ -167,10 +169,12 @@ public class GolrLoader {
     Node chromsomeParent = graphDb.getNodeById(nodeId.get());
 
     chromsomeEntailment =
-        api.getEntailment(chromsomeParent, new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.INCOMING), true);
+        api.getEntailment(chromsomeParent, new DirectedRelationshipType(
+            OwlRelationships.RDFS_SUBCLASS_OF, Direction.INCOMING), true);
 
     geneDescription =
-        graphDb.traversalDescription().depthFirst().relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
+        graphDb.traversalDescription().depthFirst()
+            .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
             .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH);
     for (RelationshipType part_of : parts_of) {
       geneDescription = geneDescription.relationships(part_of, Direction.OUTGOING);
@@ -191,18 +195,33 @@ public class GolrLoader {
     });
 
     diseaseDescription =
-        graphDb.traversalDescription().depthFirst()
-            .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"), Direction.OUTGOING)
-            .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"), Direction.OUTGOING)
-            .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"), Direction.OUTGOING)
-            .evaluator(Evaluators.atDepth(1));
+        graphDb
+            .traversalDescription()
+            .depthFirst()
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"),
+                Direction.OUTGOING)
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"),
+                Direction.OUTGOING)
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"),
+                Direction.OUTGOING).evaluator(Evaluators.atDepth(1));
 
     phenotypeDescription =
-        graphDb.traversalDescription().depthFirst()
-            .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"), Direction.OUTGOING)
-            .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"), Direction.OUTGOING)
-            .relationships(DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"), Direction.OUTGOING)
-            .evaluator(Evaluators.fromDepth(1)).evaluator(Evaluators.toDepth(2));
+        graphDb
+            .traversalDescription()
+            .depthFirst()
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"),
+                Direction.OUTGOING)
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"),
+                Direction.OUTGOING)
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"),
+                Direction.OUTGOING).evaluator(Evaluators.fromDepth(1))
+            .evaluator(Evaluators.toDepth(2));
 
   }
 
@@ -263,32 +282,46 @@ public class GolrLoader {
     return phenotypes;
   }
 
-  long process(GolrCypherQuery query, Writer writer) throws IOException, ExecutionException, ClassNotFoundException {
+
+  long process(GolrCypherQuery query, Writer writer) throws IOException, ExecutionException,
+      ClassNotFoundException {
+    return process(query, writer, Optional.absent());
+  }
+
+  long process(GolrCypherQuery query, Writer writer, Optional<String> metaSourceQuery)
+      throws IOException, ExecutionException, ClassNotFoundException {
     long recordCount = 0;
 
-    LoadingCache<Node, Optional<Node>> taxonCache = CacheBuilder.newBuilder().maximumSize(100_000).build(new CacheLoader<Node, Optional<Node>>() {
-      @Override
-      public Optional<Node> load(Node source) throws Exception {
-        return getTaxon(source);
-      }
-    });
+    LoadingCache<Node, Optional<Node>> taxonCache =
+        CacheBuilder.newBuilder().maximumSize(100_000)
+            .build(new CacheLoader<Node, Optional<Node>>() {
+              @Override
+              public Optional<Node> load(Node source) throws Exception {
+                return getTaxon(source);
+              }
+            });
 
     LoadingCache<Node, Optional<Node>> chromosomeCache =
-        CacheBuilder.newBuilder().maximumSize(100_000).build(new CacheLoader<Node, Optional<Node>>() {
-          @Override
-          public Optional<Node> load(Node source) throws Exception {
-            return getChromosome(source);
-          }
-        });
+        CacheBuilder.newBuilder().maximumSize(100_000)
+            .build(new CacheLoader<Node, Optional<Node>>() {
+              @Override
+              public Optional<Node> load(Node source) throws Exception {
+                return getChromosome(source);
+              }
+            });
 
-    LoadingCache<Node, Optional<Node>> geneCache = CacheBuilder.newBuilder().maximumSize(100_000).build(new CacheLoader<Node, Optional<Node>>() {
-      @Override
-      public Optional<Node> load(Node source) throws Exception {
-        return getGene(source);
-      }
-    });
+    LoadingCache<Node, Optional<Node>> geneCache =
+        CacheBuilder.newBuilder().maximumSize(100_000)
+            .build(new CacheLoader<Node, Optional<Node>>() {
+              @Override
+              public Optional<Node> load(Node source) throws Exception {
+                return getGene(source);
+              }
+            });
 
-    DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose().transactionDisable().cacheSize(1000000).make();
+    DB db =
+        DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose().transactionDisable()
+            .cacheSize(1000000).make();
     ConcurrentMap<Pair, String> resultsSerializable = db.createHashMap("results").make();
     ConcurrentMap<Pair, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
 
@@ -346,7 +379,8 @@ public class GolrLoader {
                 if (taxon.isPresent()) {
                   stringSerializer.serialize(key + "_taxon", taxon.get());
                 }
-                if (node.hasLabel(GENE_LABEL) || node.hasLabel(VARIANT_LABEL) || node.hasLabel(GENOTYPE_LABEL)) {
+                if (node.hasLabel(GENE_LABEL) || node.hasLabel(VARIANT_LABEL)
+                    || node.hasLabel(GENOTYPE_LABEL)) {
                   // Attempt to add gene and chromosome for monarch-initiative/monarch-app/#746
                   if (node.hasLabel(GENE_LABEL)) {
                     stringSerializer.serialize(key + "_gene", node);
@@ -371,17 +405,21 @@ public class GolrLoader {
               }
 
               if (query.getCollectedTypes().containsKey(key)) {
-                stringSerializer.serialize(key, singleton((Node) value), query.getCollectedTypes().get(key));
+                stringSerializer.serialize(key, singleton((Node) value), query.getCollectedTypes()
+                    .get(key));
               } else {
                 stringSerializer.serialize(key, value);
               }
             } else if (value instanceof Relationship) {
-              String objectPropertyIri = GraphUtil.getProperty((Relationship) value, CommonProperties.IRI, String.class).get();
+              String objectPropertyIri =
+                  GraphUtil.getProperty((Relationship) value, CommonProperties.IRI, String.class)
+                      .get();
               Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
               stringSerializer.serialize(key, objectProperty);
             } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
               // Serialize primitive types and Strings
-              if ((key.equals("subject_category") || key.equals("object_category")) && value.equals("ontology")) {
+              if ((key.equals("subject_category") || key.equals("object_category"))
+                  && value.equals("ontology")) {
                 emitEvidence = false;
               }
               stringSerializer.serialize(key, value);
@@ -396,7 +434,8 @@ public class GolrLoader {
           resultsGraph.put(pair, new EvidenceGraphInfo(evidenceGraph, emitEvidence, ignoredNodes));
         } else {
           EvidenceGraphInfo pairGraph = resultsGraph.get(pair);
-          com.tinkerpop.blueprints.Graph evidenceGraph = EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
+          com.tinkerpop.blueprints.Graph evidenceGraph =
+              EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
           Set<Long> ignoredNodes = pairGraph.ignoredNodes;
           for (Entry<String, Object> entry : row.entrySet()) {
             String key = entry.getKey();
@@ -415,7 +454,8 @@ public class GolrLoader {
               ignoredNodes.add(((Node) value).getId());
             }
           }
-          resultsGraph.put(pair, new EvidenceGraphInfo(evidenceGraph, pairGraph.emitEvidence, ignoredNodes));
+          resultsGraph.put(pair, new EvidenceGraphInfo(evidenceGraph, pairGraph.emitEvidence,
+              ignoredNodes));
         }
 
       }
@@ -427,7 +467,8 @@ public class GolrLoader {
         EvidenceGraphInfo pairGraph = resultsGraph.get(p);
 
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> existingJson = mapper.readValue(resultSerializable.getValue(), Map.class);
+        Map<String, Object> existingJson =
+            mapper.readValue(resultSerializable.getValue(), Map.class);
 
 
         for (Entry<String, Object> entry : existingJson.entrySet()) {
@@ -435,14 +476,16 @@ public class GolrLoader {
         }
 
         if (pairGraph != null) {
-          com.tinkerpop.blueprints.Graph evidenceGraph = EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
+          com.tinkerpop.blueprints.Graph evidenceGraph =
+              EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
           processor.addAssociations(evidenceGraph);
           serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
 
           // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
           // Don't emit evidence for ontology sources
           if (pairGraph.emitEvidence) {
-            List<Closure> evidenceObjectClosure = processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
+            List<Closure> evidenceObjectClosure =
+                processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
             serializer.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
             List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
             serializer.writeQuint(EVIDENCE_FIELD, evidenceClosure);
@@ -452,6 +495,11 @@ public class GolrLoader {
           }
         } else {
           System.out.println("No evidence graph");
+        }
+
+        if (metaSourceQuery.isPresent()) {
+          generator.writeRaw(",\"meta\": {  \"query\": \"monarch:cypher/" + metaSourceQuery.get()
+              + "\"}");
         }
 
         generator.writeEndObject();
