@@ -14,6 +14,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.monarch.golr.beans.Closure;
@@ -21,6 +22,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
@@ -37,7 +39,8 @@ class EvidenceProcessor {
   private final BbopGraphUtil bbopUtil;
 
   @Inject
-  EvidenceProcessor(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil, BbopGraphUtil bbopUtil) {
+  EvidenceProcessor(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil,
+      BbopGraphUtil bbopUtil) {
     this.graphDb = graphDb;
     this.aspect = aspect;
     this.closureUtil = closureUtil;
@@ -49,8 +52,16 @@ class EvidenceProcessor {
   }
 
   String getEvidenceGraph(Graph graph) {
+    return getEvidenceGraph(graph, Optional.absent());
+  }
+
+  String getEvidenceGraph(Graph graph, Optional<String> metaSourceQuery) {
     TinkerGraphUtil.project(graph, singleton("label"));
     BbopGraph bbopGraph = bbopUtil.convertGraph(graph);
+    if (metaSourceQuery.isPresent()) {
+      Map<String, Object> currentMeta = bbopGraph.getMeta();
+      currentMeta.put("query", "monarch:cypher/" + metaSourceQuery.get());
+    }
     StringWriter writer = new StringWriter();
     try {
       MAPPER.writeValue(writer, bbopGraph);
@@ -62,11 +73,11 @@ class EvidenceProcessor {
 
   List<Closure> getEvidenceObject(Graph graph, Set<Long> ignoredNodes) {
     List<Closure> closures = new ArrayList<>();
-    for (Vertex vertex: graph.getVertices()) {
-      if (ignoredNodes.contains(Long.parseLong((String)vertex.getId()))) {
+    for (Vertex vertex : graph.getVertices()) {
+      if (ignoredNodes.contains(Long.parseLong((String) vertex.getId()))) {
         continue;
       }
-      Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
+      Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
       closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
     }
     return closures;
@@ -74,10 +85,10 @@ class EvidenceProcessor {
 
   List<Closure> getEvidence(Graph graph) {
     List<Closure> closures = new ArrayList<>();
-    for (Edge edge: graph.getEdges()) {
+    for (Edge edge : graph.getEdges()) {
       if ("http://purl.obolibrary.org/obo/RO_0002558".equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
-        Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
+        Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
         closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
       }
     }
@@ -86,10 +97,10 @@ class EvidenceProcessor {
 
   List<Closure> getSource(Graph graph) {
     List<Closure> closures = new ArrayList<>();
-    for (Edge edge: graph.getEdges()) {
+    for (Edge edge : graph.getEdges()) {
       if ("http://purl.org/dc/elements/1.1/source".equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
-        Node node = graphDb.getNodeById(Long.parseLong((String)vertex.getId()));
+        Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
         closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
       }
     }
@@ -98,8 +109,9 @@ class EvidenceProcessor {
 
   List<String> getDefinedBys(Graph graph) {
     Set<String> definedBys = new HashSet<>();
-    for (Edge edge: graph.getEdges()) {
-      definedBys.addAll(TinkerGraphUtil.getProperties(edge, OwlRelationships.RDFS_IS_DEFINED_BY.name(), String.class));
+    for (Edge edge : graph.getEdges()) {
+      definedBys.addAll(TinkerGraphUtil.getProperties(edge,
+          OwlRelationships.RDFS_IS_DEFINED_BY.name(), String.class));
     }
     return newArrayList(definedBys);
   }

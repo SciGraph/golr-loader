@@ -479,7 +479,7 @@ public class GolrLoader {
           com.tinkerpop.blueprints.Graph evidenceGraph =
               EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
           processor.addAssociations(evidenceGraph);
-          serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph));
+          serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph, metaSourceQuery));
 
           // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
           // Don't emit evidence for ontology sources
@@ -495,11 +495,6 @@ public class GolrLoader {
           }
         } else {
           System.out.println("No evidence graph");
-        }
-
-        if (metaSourceQuery.isPresent()) {
-          generator.writeRaw(",\"meta\": {  \"query\": \"monarch:cypher/" + metaSourceQuery.get()
-              + "\"}");
         }
 
         generator.writeEndObject();
