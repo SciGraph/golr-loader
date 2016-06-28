@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.BeforeClass;
+import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -57,6 +58,12 @@ public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
       assn.createRelationshipTo(evidence, DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002558"));
       assn.createRelationshipTo(d, DynamicRelationshipType.withName("http://purl.org/oban/association_has_subject"));
       assn.createRelationshipTo(e, DynamicRelationshipType.withName("http://purl.org/oban/association_has_object"));
+      
+      Node gene = createNode("http://x.org/gene");
+      gene.addLabel(DynamicLabel.label("gene"));
+      Node ortholog = createNode("http://x.org/gene_ortholog");
+      ortholog.addLabel(DynamicLabel.label("gene"));
+      gene.createRelationshipTo(ortholog, DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"));
       tx.success();
     }
   }

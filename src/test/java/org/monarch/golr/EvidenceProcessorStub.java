@@ -1,8 +1,11 @@
 package org.monarch.golr;
 
 import static java.util.Collections.emptyList;
+import io.scigraph.bbop.BbopGraphUtil;
 import io.scigraph.internal.GraphAspect;
+import io.scigraph.owlapi.curies.CurieUtil;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -14,12 +17,12 @@ import com.tinkerpop.blueprints.Graph;
 public class EvidenceProcessorStub extends EvidenceProcessor {
 
   EvidenceProcessorStub(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil) {
-    super(graphDb, aspect, closureUtil, null);
+    super(graphDb, aspect, closureUtil, new BbopGraphUtil(new CurieUtil(
+        new HashMap<String, String>())));
   }
 
   @Override
-  void addAssociations(Graph graph) {
-  }
+  void addAssociations(Graph graph) {}
 
   @Override
   String getEvidenceGraph(Graph graph) {

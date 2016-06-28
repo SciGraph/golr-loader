@@ -3,8 +3,10 @@ package org.monarch.golr;
 import io.scigraph.internal.CypherUtil;
 import io.scigraph.internal.GraphApi;
 import io.scigraph.neo4j.DirectedRelationshipType;
+import io.scigraph.owlapi.curies.CurieUtil;
 
 import java.io.StringWriter;
+import java.util.HashMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -24,7 +26,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
   public void setup() {
     EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil);
     CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
-    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil));
+    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil, new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil));
   }
 
   @Test

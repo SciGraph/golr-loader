@@ -1,6 +1,8 @@
 package org.monarch.golr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.transform;
 import static java.util.Collections.singleton;
 import io.scigraph.frames.CommonProperties;
 import io.scigraph.frames.NodeProperties;
@@ -11,10 +13,12 @@ import io.scigraph.neo4j.DirectedRelationshipType;
 import io.scigraph.neo4j.Graph;
 import io.scigraph.neo4j.GraphUtil;
 import io.scigraph.owlapi.OwlRelationships;
+import io.scigraph.owlapi.curies.CurieUtil;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -75,6 +79,7 @@ public class GolrLoader {
   private final EvidenceProcessor processor;
   private final Graph graph;
   private final CypherUtil cypherUtil;
+  private final CurieUtil curieUtil;
   private final GraphApi api;
 
   private static final RelationshipType inTaxon = DynamicRelationshipType
@@ -102,16 +107,18 @@ public class GolrLoader {
   private TraversalDescription taxonDescription;
   private TraversalDescription chromosomeDescription;
   private TraversalDescription diseaseDescription;
+  private TraversalDescription orthologDescription;
   private TraversalDescription phenotypeDescription;
   private Collection<Node> chromsomeEntailment;
   private TraversalDescription geneDescription;
   private Collection<String> variantStrings;
 
   @Inject
-  GolrLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil,
+  GolrLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil, CurieUtil curieUtil,
       ResultSerializerFactory factory, EvidenceProcessor processor, GraphApi api) {
     this.graphDb = graphDb;
     this.cypherUtil = cypherUtil;
+    this.curieUtil = curieUtil;
     this.graph = graph;
     this.factory = factory;
     this.processor = processor;
@@ -160,6 +167,15 @@ public class GolrLoader {
             .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
             .relationships(location, Direction.OUTGOING).relationships(begin, Direction.OUTGOING)
             .relationships(reference, Direction.OUTGOING);
+
+    orthologDescription =
+        graphDb
+            .traversalDescription()
+            .breadthFirst()
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"))
+            .relationships(
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000020"));
 
     Optional<Long> nodeId = graph.getNode(CHROMOSOME_TYPE);
     if (!nodeId.isPresent()) {
@@ -256,6 +272,16 @@ public class GolrLoader {
     return Optional.absent();
   }
 
+  Collection<Node> getOrthologs(Node source) throws IOException {
+    Collection<Node> orthologs = new HashSet<>();
+    for (Path path : orthologDescription.traverse(source)) {
+      if (path.endNode().hasLabel(GENE_LABEL) && path.endNode() != source) {
+        orthologs.add(path.endNode());
+      }
+    }
+    return orthologs;
+  }
+
   Collection<Node> getDiseases(Node source) throws IOException {
     String cypher = Resources.toString(Resources.getResource("disease.cypher"), Charsets.UTF_8);
     Multimap<String, Object> params = HashMultimap.create();
@@ -316,6 +342,15 @@ public class GolrLoader {
               @Override
               public Optional<Node> load(Node source) throws Exception {
                 return getGene(source);
+              }
+            });
+
+    LoadingCache<Node, Collection<Node>> orthologCache =
+        CacheBuilder.newBuilder().maximumSize(100_000)
+            .build(new CacheLoader<Node, Collection<Node>>() {
+              @Override
+              public Collection<Node> load(Node source) throws Exception {
+                return getOrthologs(source);
               }
             });
 
@@ -396,6 +431,20 @@ public class GolrLoader {
                     stringSerializer.serialize(key + "_chromosome", chromosome.get());
                   }
                 }
+              }
+
+              if ("subject".equals(key)) {
+                Collection<Node> orthologs = getOrthologs((Node) value);
+                Collection<String> orthologsId = transform(orthologs, new Function<Node, String>() {
+                  @Override
+                  public String apply(Node node) {
+                    String iri =
+                        GraphUtil.getProperty(node, NodeProperties.IRI, String.class).get();
+                    return curieUtil.getCurie(iri).or(iri);
+                  }
+                });
+                stringSerializer.writeArray("subject_ortholog_closure", new ArrayList<String>(
+                    orthologsId));
               }
 
               if ("feature".equals(key)) {
@@ -479,7 +528,8 @@ public class GolrLoader {
           com.tinkerpop.blueprints.Graph evidenceGraph =
               EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
           processor.addAssociations(evidenceGraph);
-          serializer.serialize(EVIDENCE_GRAPH, processor.getEvidenceGraph(evidenceGraph, metaSourceQuery));
+          serializer.serialize(EVIDENCE_GRAPH,
+              processor.getEvidenceGraph(evidenceGraph, metaSourceQuery));
 
           // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
           // Don't emit evidence for ontology sources
