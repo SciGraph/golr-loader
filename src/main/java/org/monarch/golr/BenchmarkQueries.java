@@ -32,19 +32,23 @@ import com.google.inject.Injector;
 
 public class BenchmarkQueries {
 
-  static final String queriesDirectory = "/home/jnguyenxuan/golrbenchmark/queriestest";
+  static final String queriesDirectory = "/home/jnguyenxuan/workspace/configs/SciGraph/golr/queries";
   static final String configurationPath = "src/test/resources/benchmarkconf.yaml";
 
-  public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException {
+  public static void main(String[] args) throws JsonParseException, JsonMappingException,
+      IOException {
 
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-    Neo4jConfiguration neo4jConfig = mapper.readValue(new File(configurationPath), Neo4jConfiguration.class);
-    Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig), new AbstractModule() {
-      @Override
-      protected void configure() {
-        bind(GraphAspect.class).to(EvidenceAspect.class);
-      }
-    });
+    Neo4jConfiguration neo4jConfig =
+        mapper.readValue(new File(configurationPath), Neo4jConfiguration.class);
+    Injector i =
+        Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
+            new AbstractModule() {
+              @Override
+              protected void configure() {
+                bind(GraphAspect.class).to(EvidenceAspect.class);
+              }
+            });
 
     GraphDatabaseService graphDb = i.getInstance(GraphDatabaseService.class);
     CypherUtil cypherUtil = i.getInstance(CypherUtil.class);
@@ -58,8 +62,8 @@ public class BenchmarkQueries {
           System.out.println(filePath);
           Stopwatch sw = Stopwatch.createStarted();
 
-          // int count = runCypherQuery(query, graphDb, cypherUtil);
-        int count = runGolrQuery(query, loader, filePath.toFile());
+          int count = runCypherQuery(query, graphDb, cypherUtil);
+          // int count = runGolrQuery(query, loader, filePath.toFile());
 
         System.out.println(sw.stop());
         System.out.println(count);
@@ -75,15 +79,19 @@ public class BenchmarkQueries {
 
   }
 
-  public static int runGolrQuery(GolrCypherQuery query, GolrLoader loader, File file) throws IOException, ExecutionException, ClassNotFoundException {
+  public static int runGolrQuery(GolrCypherQuery query, GolrLoader loader, File file)
+      throws IOException, ExecutionException, ClassNotFoundException {
     FileWriter writer = new FileWriter(new File(file.getAbsolutePath() + ".json"));
     int count = 0;
-    count = toIntExact(loader.process(query, writer, Optional.of(FilenameUtils.removeExtension(file.getName()))));
+    count =
+        toIntExact(loader.process(query, writer,
+            Optional.of(FilenameUtils.removeExtension(file.getName()))));
     return count;
   }
 
 
-  public static int runCypherQuery(GolrCypherQuery query, GraphDatabaseService graphDb, CypherUtil cypherUtil) {
+  public static int runCypherQuery(GolrCypherQuery query, GraphDatabaseService graphDb,
+      CypherUtil cypherUtil) {
     int count = 0;
     try {
 

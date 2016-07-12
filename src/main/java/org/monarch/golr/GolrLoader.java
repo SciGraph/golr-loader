@@ -1,8 +1,6 @@
 package org.monarch.golr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Lists.transform;
 import static java.util.Collections.singleton;
 import io.scigraph.frames.CommonProperties;
 import io.scigraph.frames.NodeProperties;
@@ -175,7 +173,8 @@ public class GolrLoader {
             .relationships(
                 DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"))
             .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000020"));
+                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000020"))
+            .evaluator(Evaluators.toDepth(1));
 
     Optional<Long> nodeId = graph.getNode(CHROMOSOME_TYPE);
     if (!nodeId.isPresent()) {
