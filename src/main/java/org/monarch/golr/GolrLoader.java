@@ -136,7 +136,7 @@ public class GolrLoader {
             .singleton("http://purl.obolibrary.org/obo/RO_0002525"));
     variants =
         cypherUtil.getEntailedRelationshipTypes(Collections
-            .singleton("http://purl.obolibrary.org/obo/GENO_0000410"));
+            .singleton("http://purl.obolibrary.org/obo/GENO_0000418"));
     taxonDescription =
         graphDb.traversalDescription().breadthFirst()
             .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS, Direction.BOTH)
