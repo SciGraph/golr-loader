@@ -163,7 +163,8 @@ public class GolrLoader {
             .relationships(OwlRelationships.OWL_SAME_AS, Direction.BOTH)
             .relationships(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING)
             .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
-            .relationships(location, Direction.OUTGOING).relationships(begin, Direction.OUTGOING)
+            .relationships(location, Direction.OUTGOING)
+            .relationships(begin, Direction.OUTGOING)
             .relationships(reference, Direction.OUTGOING);
 
     orthologDescription =
@@ -433,7 +434,7 @@ public class GolrLoader {
               }
 
               if ("subject".equals(key)) {
-                Collection<Node> orthologs = getOrthologs((Node) value);
+                Collection<Node> orthologs = orthologCache.get((Node) value);
                 Collection<String> orthologsId = transform(orthologs, new Function<Node, String>() {
                   @Override
                   public String apply(Node node) {

@@ -32,7 +32,7 @@ import com.google.inject.Injector;
 
 public class BenchmarkQueries {
 
-  static final String queriesDirectory = "/home/jnguyenxuan/workspace/configs/SciGraph/golr/queries";
+  static final String queriesDirectory = "/home/jnguyenxuan/golrqueries";
   static final String configurationPath = "src/test/resources/benchmarkconf.yaml";
 
   public static void main(String[] args) throws JsonParseException, JsonMappingException,
@@ -62,8 +62,8 @@ public class BenchmarkQueries {
           System.out.println(filePath);
           Stopwatch sw = Stopwatch.createStarted();
 
-          int count = runCypherQuery(query, graphDb, cypherUtil);
-          // int count = runGolrQuery(query, loader, filePath.toFile());
+          //int count = runCypherQuery(query, graphDb, cypherUtil);
+          int count = runGolrQuery(query, loader, filePath.toFile());
 
         System.out.println(sw.stop());
         System.out.println(count);
