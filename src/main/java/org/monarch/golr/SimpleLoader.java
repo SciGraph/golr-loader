@@ -17,7 +17,6 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,12 +40,14 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 
 public class SimpleLoader {
 
   private static final Logger logger = Logger.getLogger(SimpleLoader.class.getName());
   private final String cliqueLeaderString = "cliqueLeader";
   private final Label cliqueLeaderLabel = DynamicLabel.label(cliqueLeaderString);
+  private final Set<String> labels = Sets.newHashSet("Phenotype", "disease", "gene");
 
   GraphDatabaseService graphDb;
   Graph graph;
@@ -89,8 +90,9 @@ public class SimpleLoader {
       ResourceIterator<Node> cliqueLeaderNodes = graphDb.findNodes(cliqueLeaderLabel);
       while (cliqueLeaderNodes.hasNext()) {
         Node baseNode = cliqueLeaderNodes.next();
-        // consider only nodes with labels
-        if (baseNode.hasProperty(NodeProperties.LABEL)) {
+        // consider only nodes with a label property and in the category set
+        if (isInLabelSet(baseNode.getLabels(), labels)
+            && baseNode.hasProperty(NodeProperties.LABEL)) {
           generator.writeStartObject();
           String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
           generator.writeStringField("iri", iri);
@@ -160,6 +162,16 @@ public class SimpleLoader {
     if (!outputFile.isPresent()) {
       System.out.println(writer.toString());
     }
+  }
+
+  private boolean isInLabelSet(Iterable<Label> nodeLabels, Set<String> validLabels) {
+    Iterator<Label> it = nodeLabels.iterator();
+    while (it.hasNext()) {
+      if (validLabels.contains(it.next().name())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public void writeOptionalArray(String fieldName, JsonGenerator generator,

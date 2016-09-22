@@ -3,7 +3,6 @@ package org.monarch.golr;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -21,7 +20,8 @@ public class EvidenceGraphInfo implements Serializable {
   final boolean emitEvidence;
   final Set<Long> ignoredNodes;
 
-  public EvidenceGraphInfo(Graph graphPath, boolean emitEvidence, Set<Long> ignoredNodes) throws IOException {
+  public EvidenceGraphInfo(Graph graphPath, boolean emitEvidence, Set<Long> ignoredNodes)
+      throws IOException {
     this.graphBytes = toByteArray(graphPath);
     this.emitEvidence = emitEvidence;
     this.ignoredNodes = ignoredNodes;
@@ -37,7 +37,8 @@ public class EvidenceGraphInfo implements Serializable {
   @Override
   public boolean equals(Object other) {
     if (other instanceof EvidenceGraphInfo) {
-      return graphBytes.equals(((EvidenceGraphInfo) other).graphBytes) && emitEvidence == ((EvidenceGraphInfo) other).emitEvidence
+      return graphBytes.equals(((EvidenceGraphInfo) other).graphBytes)
+          && emitEvidence == ((EvidenceGraphInfo) other).emitEvidence
           && ignoredNodes == ((EvidenceGraphInfo) other).ignoredNodes;
     }
 
@@ -57,7 +58,8 @@ public class EvidenceGraphInfo implements Serializable {
     return newTmpDir;
   }
 
-  // We have to handle the serialization ourselves because of https://github.com/tinkerpop/blueprints/issues/285
+  // We have to handle the serialization ourselves because of
+  // https://github.com/tinkerpop/blueprints/issues/285
   public static byte[] toByteArray(Graph g) throws IOException {
     // Serialize data object to a byte array
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
