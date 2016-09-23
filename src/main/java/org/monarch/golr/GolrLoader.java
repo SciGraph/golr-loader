@@ -370,26 +370,6 @@ public class GolrLoader {
     return recordCount;
   }
 
-  private long serializedFeatureQuery(GolrCypherQuery query, Result result, Writer writer,
-      Optional<String> metaSourceQuery) throws IOException, ExecutionException {
-    JsonGenerator generator = new JsonFactory().createGenerator(writer);
-    ResultSerializer serializer = factory.create(generator);
-
-    int recordCount = 0;
-
-    generator.writeStartArray();
-    while (result.hasNext()) {
-      Set<Long> ignoredNodes = new HashSet<>();
-      com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
-      recordCount++;
-      Map<String, Object> row = result.next();
-      serializerRow(row, serializer, evidenceGraph, ignoredNodes, query);
-    }
-    generator.writeEndArray();
-    generator.close();
-    return recordCount;
-  }
-
   private long serializeGolrQuery(GolrCypherQuery query, Result result, Writer writer,
       Optional<String> metaSourceQuery) throws IOException, ClassNotFoundException,
       ExecutionException {
@@ -508,10 +488,34 @@ public class GolrLoader {
     return recordCount;
   }
 
-  private boolean serializerRow(Map<String, Object> row, ResultSerializer stringSerializer,
+  private long serializedFeatureQuery(GolrCypherQuery query, Result result, Writer writer,
+      Optional<String> metaSourceQuery) throws IOException, ExecutionException {
+    JsonGenerator generator = new JsonFactory().createGenerator(writer);
+    ResultSerializer serializer = factory.create(generator);
+
+    int recordCount = 0;
+
+    generator.writeStartArray();
+    while (result.hasNext()) {
+      generator.writeStartObject();
+      Set<Long> ignoredNodes = new HashSet<>();
+      com.tinkerpop.blueprints.Graph evidenceGraph = new TinkerGraph();
+      recordCount++;
+      Map<String, Object> row = result.next();
+      serializerRow(row, serializer, evidenceGraph, ignoredNodes, query);
+      generator.writeEndObject();
+      generator.writeRaw('\n');
+    }
+    generator.writeEndArray();
+    generator.close();
+    return recordCount;
+  }
+
+  private boolean serializerRow(Map<String, Object> row, ResultSerializer serializer,
       com.tinkerpop.blueprints.Graph evidenceGraph, Set<Long> ignoredNodes, GolrCypherQuery query)
       throws IOException, ExecutionException {
     boolean emitEvidence = true;
+
 
     for (Entry<String, Object> entry : row.entrySet()) {
       String key = entry.getKey();
@@ -537,23 +541,23 @@ public class GolrLoader {
           Node node = (Node) value;
           Optional<Node> taxon = taxonCache.get(node);
           if (taxon.isPresent()) {
-            stringSerializer.serialize(key + "_taxon", taxon.get());
+            serializer.serialize(key + "_taxon", taxon.get());
           }
           if (node.hasLabel(GENE_LABEL) || node.hasLabel(VARIANT_LABEL)
               || node.hasLabel(GENOTYPE_LABEL)) {
             // Attempt to add gene and chromosome for monarch-initiative/monarch-app/#746
             if (node.hasLabel(GENE_LABEL)) {
-              stringSerializer.serialize(key + "_gene", node);
+              serializer.serialize(key + "_gene", node);
             } else {
               Optional<Node> gene = geneCache.get(node);
               if (gene.isPresent()) {
-                stringSerializer.serialize(key + "_gene", gene.get());
+                serializer.serialize(key + "_gene", gene.get());
               }
             }
 
             Optional<Node> chromosome = chromosomeCache.get(node);
             if (chromosome.isPresent()) {
-              stringSerializer.serialize(key + "_chromosome", chromosome.get());
+              serializer.serialize(key + "_chromosome", chromosome.get());
             }
           }
         }
@@ -567,34 +571,32 @@ public class GolrLoader {
               return curieUtil.getCurie(iri).or(iri);
             }
           });
-          stringSerializer.writeArray("subject_ortholog_closure",
-              new ArrayList<String>(orthologsId));
+          serializer.writeArray("subject_ortholog_closure", new ArrayList<String>(orthologsId));
         }
 
         if ("feature".equals(key)) {
           // Add disease and phenotype for feature
-          stringSerializer.serialize("disease", getDiseases((Node) value));
-          stringSerializer.serialize("phenotype", getPhenotypes((Node) value));
+          serializer.serialize("disease", getDiseases((Node) value));
+          serializer.serialize("phenotype", getPhenotypes((Node) value));
         }
 
         if (query.getCollectedTypes().containsKey(key)) {
-          stringSerializer.serialize(key, singleton((Node) value),
-              query.getCollectedTypes().get(key));
+          serializer.serialize(key, singleton((Node) value), query.getCollectedTypes().get(key));
         } else {
-          stringSerializer.serialize(key, value);
+          serializer.serialize(key, value);
         }
       } else if (value instanceof Relationship) {
         String objectPropertyIri =
             GraphUtil.getProperty((Relationship) value, CommonProperties.IRI, String.class).get();
         Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
-        stringSerializer.serialize(key, objectProperty);
+        serializer.serialize(key, objectProperty);
       } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
         // Serialize primitive types and Strings
         if ((key.equals("subject_category") || key.equals("object_category"))
             && value.equals("ontology")) {
           emitEvidence = false;
         }
-        stringSerializer.serialize(key, value);
+        serializer.serialize(key, value);
       }
     }
     return emitEvidence;
