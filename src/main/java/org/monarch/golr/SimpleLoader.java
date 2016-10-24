@@ -100,21 +100,35 @@ public class SimpleLoader {
           writeOptionalArray("label", generator,
               GraphUtil.getProperties(baseNode, NodeProperties.LABEL, String.class));
           writeOptionalArray("definition", generator,
-              GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
-          writeOptionalArray("synonym", generator,
               GraphUtil.getProperties(baseNode, Concept.DEFINITION, String.class));
+          writeOptionalArray("synonym", generator,
+              GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
 
           // taxon
+          Optional<Node> taxon = Optional.absent();
           List<String> taxons = new ArrayList<String>();
           for (Path path : graphDb.traversalDescription().depthFirst()
               .relationships(inTaxon, Direction.OUTGOING).traverse(baseNode)) {
             if (path.length() > 0) {
-              taxons.add(GraphUtil.getProperty(path.endNode(), NodeProperties.LABEL, String.class)
-                  .get());
-              taxons.addAll(GraphUtil.getProperties(path.endNode(), Concept.SYNONYM, String.class));
+              taxon = Optional.of(path.endNode());
+              break;
             }
           }
-          writeOptionalArray("taxon", generator, taxons);
+
+          if (taxon.isPresent()) {
+            String taxonIri =
+                GraphUtil.getProperty(taxon.get(), NodeProperties.IRI, String.class).get();
+            generator.writeStringField("taxon", curieUtil.getCurie(taxonIri).or(taxonIri));
+            String taxonLabel =
+                GraphUtil.getProperty(taxon.get(), NodeProperties.LABEL, String.class).or("");
+            generator.writeStringField("taxon_label", taxonLabel);
+            writeOptionalArray("taxon_label_synonym", generator,
+                (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
+          } else {
+            generator.writeStringField("taxon", "");
+            generator.writeStringField("taxon_label", "");
+            writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
+          }
 
           // categories
           writeOptionalArray("category", generator, baseNode.getLabels());
