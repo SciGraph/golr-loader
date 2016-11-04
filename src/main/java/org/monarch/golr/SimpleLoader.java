@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -40,6 +41,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class SimpleLoader {
@@ -125,13 +127,15 @@ public class SimpleLoader {
             writeOptionalArray("taxon_label_synonym", generator,
                 (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
           } else {
+            // TODO one ttl data are fixed, throw an error or warning when no taxons are found
             generator.writeStringField("taxon", "");
             generator.writeStringField("taxon_label", "");
             writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
           }
 
           // categories
-          writeOptionalArray("category", generator, baseNode.getLabels());
+          writeOptionalArray("category", generator, Lists.newArrayList(baseNode.getLabels())
+              .stream().filter(label -> labels.contains(label.name())).collect(Collectors.toList()));
 
           // equivalences
           List<String> equivalences = new ArrayList<String>();
