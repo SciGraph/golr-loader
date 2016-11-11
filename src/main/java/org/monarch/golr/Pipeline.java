@@ -68,23 +68,37 @@ public class Pipeline {
 
   public static Options getOptions() {
     Options options = new Options();
-    Option option = Option.builder("g").longOpt("graph").required().hasArg().desc("The Neo4j graph configuration").build();
-    options.addOption(option);
-    option = Option.builder("q").longOpt("query").required().hasArg().desc("The query configuration").build();
-    options.addOption(option);
-    option = Option.builder("s").longOpt("solr-server").required(false).hasArg().desc("An optional Solr server to update").build();
-    options.addOption(option);
-    option = Option.builder("o").longOpt("output").required(false).hasArg().desc("An optional output file for the JSON").build();
+    Option option =
+        Option.builder("g").longOpt("graph").required().hasArg()
+            .desc("The Neo4j graph configuration").build();
     options.addOption(option);
     option =
-        Option.builder("onlyupload").longOpt("onlyupload").required(false)
-            .desc("To only upload the JSON. The -o  and -s arguments are mandatory with this option.").build();
+        Option.builder("q").longOpt("query").required().hasArg().desc("The query configuration")
+            .build();
+    options.addOption(option);
+    option =
+        Option.builder("s").longOpt("solr-server").required(false).hasArg()
+            .desc("An optional Solr server to update").build();
+    options.addOption(option);
+    option =
+        Option.builder("o").longOpt("output").required(false).hasArg()
+            .desc("An optional output file for the JSON").build();
+    options.addOption(option);
+    option =
+        Option
+            .builder("onlyupload")
+            .longOpt("onlyupload")
+            .required(false)
+            .desc(
+                "To only upload the JSON. The -o  and -s arguments are mandatory with this option.")
+            .build();
     options.addOption(option);
     return options;
   }
 
-  public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException, URISyntaxException, ExecutionException,
-      InterruptedException, KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+  public static void main(String[] args) throws JsonParseException, JsonMappingException,
+      IOException, URISyntaxException, ExecutionException, InterruptedException,
+      KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
     Options options = getOptions();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
@@ -120,7 +134,8 @@ public class Pipeline {
       // ignore ssl certs because letsencrypt is not supported by Oracle yet
       SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
         @Override
-        public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
+        public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
+            throws java.security.cert.CertificateException {
           // TODO Auto-generated method stub
           return true;
         }
@@ -130,10 +145,12 @@ public class Pipeline {
         logger.info("Posting JSON " + fileEntry.getName() + " to " + solrServer.get());
         try {
           CloseableHttpClient httpClient =
-              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).setSSLContext(sslContext).build();
+              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                  .setSSLContext(sslContext).build();
           Request request =
-              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + SOLR_JSON_URL_SUFFIX)).bodyFile(fileEntry,
-                  ContentType.APPLICATION_JSON);
+              Request.Post(
+                  new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/")
+                      + SOLR_JSON_URL_SUFFIX)).bodyFile(fileEntry, ContentType.APPLICATION_JSON);
 
           Executor executor = Executor.newInstance(httpClient);
           String result = executor.execute(request).returnContent().asString();
@@ -144,16 +161,19 @@ public class Pipeline {
         }
       }
     } else {
-      Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig), new AbstractModule() {
-        @Override
-        protected void configure() {
-          bind(GraphAspect.class).to(EvidenceAspect.class);
-        }
-      });
+      Injector i =
+          Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
+              new AbstractModule() {
+                @Override
+                protected void configure() {
+                  bind(GraphAspect.class).to(EvidenceAspect.class);
+                }
+              });
 
       GolrLoader loader = i.getInstance(GolrLoader.class);
 
-      final ExecutorService pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+      final ExecutorService pool =
+          Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
       List<Future<Boolean>> futures = new ArrayList<>();
 
 
@@ -166,7 +186,9 @@ public class Pipeline {
           outputFile = Files.createTempFile("golr-load", ".json").toFile();
           outputFile.deleteOnExit();
         }
-        final Future<Boolean> contentFuture = pool.submit(new GolrWorker(solrServer, outputFile, loader, query, SOLR_JSON_URL_SUFFIX, SOLR_LOCK));
+        final Future<Boolean> contentFuture =
+            pool.submit(new GolrWorker(solrServer, outputFile, loader, query, SOLR_JSON_URL_SUFFIX,
+                SOLR_LOCK));
         futures.add(contentFuture);
       }
 

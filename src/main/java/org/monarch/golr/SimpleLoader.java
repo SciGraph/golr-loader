@@ -127,7 +127,7 @@ public class SimpleLoader {
             writeOptionalArray("taxon_label_synonym", generator,
                 (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
           } else {
-            // TODO one ttl data are fixed, throw an error or warning when no taxons are found
+            // TODO once ttl data are fixed, throw an error or warning when no taxons are found
             generator.writeStringField("taxon", "");
             generator.writeStringField("taxon_label", "");
             writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
