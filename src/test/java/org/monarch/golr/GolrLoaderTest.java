@@ -3,10 +3,8 @@ package org.monarch.golr;
 import io.scigraph.internal.CypherUtil;
 import io.scigraph.internal.GraphApi;
 import io.scigraph.neo4j.DirectedRelationshipType;
-import io.scigraph.owlapi.curies.CurieUtil;
 
 import java.io.StringWriter;
-import java.util.HashMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;

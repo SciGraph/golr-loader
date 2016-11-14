@@ -35,8 +35,6 @@ import org.mapdb.DBMaker;
 import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -80,23 +78,23 @@ public class GolrLoader {
   private final CurieUtil curieUtil;
   private final GraphApi api;
 
-  private static final RelationshipType inTaxon = DynamicRelationshipType
+  private static final RelationshipType inTaxon = RelationshipType
       .withName("http://purl.obolibrary.org/obo/RO_0002162");
-  private static final RelationshipType derivesFrom = DynamicRelationshipType
+  private static final RelationshipType derivesFrom = RelationshipType
       .withName("http://purl.obolibrary.org/obo/RO_0001000");
-  private static final RelationshipType derivesSeqFromGene = DynamicRelationshipType
+  private static final RelationshipType derivesSeqFromGene = RelationshipType
       .withName("http://purl.obolibrary.org/obo/GENO_0000639");
-  private static final RelationshipType hasGenotype = DynamicRelationshipType
+  private static final RelationshipType hasGenotype = RelationshipType
       .withName("http://purl.obolibrary.org/obo/GENO_0000222");
   private static final String CHROMOSOME_TYPE = "http://purl.obolibrary.org/obo/SO_0000340";
 
-  private static final RelationshipType location = DynamicRelationshipType.withName("location");
-  private static final RelationshipType begin = DynamicRelationshipType.withName("begin");
-  private static final RelationshipType reference = DynamicRelationshipType.withName("reference");
+  private static final RelationshipType location = RelationshipType.withName("location");
+  private static final RelationshipType begin = RelationshipType.withName("begin");
+  private static final RelationshipType reference = RelationshipType.withName("reference");
 
-  private static final Label GENE_LABEL = DynamicLabel.label("gene");
-  private static final Label VARIANT_LABEL = DynamicLabel.label("sequence feature");
-  private static final Label GENOTYPE_LABEL = DynamicLabel.label("genotype");
+  private static final Label GENE_LABEL = Label.label("gene");
+  private static final Label VARIANT_LABEL = Label.label("sequence feature");
+  private static final Label GENOTYPE_LABEL = Label.label("genotype");
 
   private Collection<RelationshipType> parts_of;
   private Collection<RelationshipType> subSequenceOfs;
@@ -171,9 +169,9 @@ public class GolrLoader {
             .traversalDescription()
             .breadthFirst()
             .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"))
+                RelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"))
             .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000020"))
+                RelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000020"))
             .evaluator(Evaluators.toDepth(1));
 
     Optional<Long> nodeId = graph.getNode(CHROMOSOME_TYPE);
@@ -213,28 +211,22 @@ public class GolrLoader {
         graphDb
             .traversalDescription()
             .depthFirst()
-            .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"),
+            .relationships(RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"),
                 Direction.OUTGOING)
-            .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"),
+            .relationships(RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"),
                 Direction.OUTGOING)
-            .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"),
+            .relationships(RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"),
                 Direction.OUTGOING).evaluator(Evaluators.atDepth(1));
 
     phenotypeDescription =
         graphDb
             .traversalDescription()
             .depthFirst()
-            .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"),
+            .relationships(RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"),
                 Direction.OUTGOING)
-            .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"),
+            .relationships(RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002610"),
                 Direction.OUTGOING)
-            .relationships(
-                DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"),
+            .relationships(RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002326"),
                 Direction.OUTGOING).evaluator(Evaluators.fromDepth(1))
             .evaluator(Evaluators.toDepth(2));
 
