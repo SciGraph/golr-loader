@@ -1,5 +1,6 @@
 package org.monarch.golr;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import io.scigraph.internal.CypherUtil;
 import io.scigraph.internal.GraphApi;
 
@@ -7,7 +8,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.concurrent.ExecutionException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import org.hamcrest.core.StringContains;
 import org.junit.Before;
 import org.junit.Test;

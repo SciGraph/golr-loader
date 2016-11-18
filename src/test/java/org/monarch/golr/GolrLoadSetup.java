@@ -11,11 +11,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.BeforeClass;
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 
 import com.google.common.base.Charsets;
@@ -38,8 +38,8 @@ public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
       Relationship r1 = addRelationship("http://x.org/a_a", "http://x.org/a_b", OwlRelationships.RDFS_SUBCLASS_OF);
       Relationship r2 = addRelationship("http://x.org/a_b", "http://x.org/a_c", OwlRelationships.RDFS_SUBCLASS_OF);
       Relationship r3 = addRelationship("http://x.org/a_c", "http://x.org/a_d", OwlRelationships.RDF_TYPE);
-      Relationship r4 = addRelationship("http://x.org/a_e", "http://x.org/a_d", DynamicRelationshipType.withName("CAUSES"));
-      Relationship r5 = addRelationship("http://x.org/a_f", "http://x.org/a_e", DynamicRelationshipType.withName("partOf"));
+      Relationship r4 = addRelationship("http://x.org/a_e", "http://x.org/a_d", RelationshipType.withName("CAUSES"));
+      Relationship r5 = addRelationship("http://x.org/a_f", "http://x.org/a_e", RelationshipType.withName("partOf"));
       graph.setRelationshipProperty(r4.getId(), CommonProperties.IRI, "http://x.org/a_causes");
       addRelationship("http://x.org/a_causes_parent", "http://x.org/a_causes", OwlRelationships.RDFS_SUB_PROPERTY_OF);
       addRelationship("_:anon", "http://x.org/a_b", OwlRelationships.RDFS_SUBCLASS_OF);
@@ -55,15 +55,15 @@ public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
       Node assnParent = createNode("http://x.org/a_assn_parent");
       assn.createRelationshipTo(assnParent, OwlRelationships.RDFS_SUBCLASS_OF);
       Node evidence = createNode("http://x.org/a_evidence");
-      assn.createRelationshipTo(evidence, DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002558"));
-      assn.createRelationshipTo(d, DynamicRelationshipType.withName("http://purl.org/oban/association_has_subject"));
-      assn.createRelationshipTo(e, DynamicRelationshipType.withName("http://purl.org/oban/association_has_object"));
+      assn.createRelationshipTo(evidence, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002558"));
+      assn.createRelationshipTo(d, RelationshipType.withName("http://purl.org/oban/association_has_subject"));
+      assn.createRelationshipTo(e, RelationshipType.withName("http://purl.org/oban/association_has_object"));
       
       Node gene = createNode("http://x.org/gene");
-      gene.addLabel(DynamicLabel.label("gene"));
+      gene.addLabel(Label.label("gene"));
       Node ortholog = createNode("http://x.org/gene_ortholog");
-      ortholog.addLabel(DynamicLabel.label("gene"));
-      gene.createRelationshipTo(ortholog, DynamicRelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"));
+      ortholog.addLabel(Label.label("gene"));
+      gene.createRelationshipTo(ortholog, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"));
       tx.success();
     }
   }

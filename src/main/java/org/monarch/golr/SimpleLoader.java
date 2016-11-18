@@ -27,8 +27,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -48,7 +46,7 @@ public class SimpleLoader {
 
   private static final Logger logger = Logger.getLogger(SimpleLoader.class.getName());
   private final String cliqueLeaderString = "cliqueLeader";
-  private final Label cliqueLeaderLabel = DynamicLabel.label(cliqueLeaderString);
+  private final Label cliqueLeaderLabel = Label.label(cliqueLeaderString);
   private final Set<String> labels = Sets.newHashSet("Phenotype", "disease", "gene");
 
   GraphDatabaseService graphDb;
@@ -70,7 +68,7 @@ public class SimpleLoader {
     unwantedLabels.add(cliqueLeaderString);
   }
 
-  private static final RelationshipType inTaxon = DynamicRelationshipType
+  private static final RelationshipType inTaxon = RelationshipType
       .withName("http://purl.obolibrary.org/obo/RO_0002162");
 
   // add leaf node or not
@@ -108,7 +106,6 @@ public class SimpleLoader {
 
           // taxon
           Optional<Node> taxon = Optional.absent();
-          List<String> taxons = new ArrayList<String>();
           for (Path path : graphDb.traversalDescription().depthFirst()
               .relationships(inTaxon, Direction.OUTGOING).traverse(baseNode)) {
             if (path.length() > 0) {
@@ -127,7 +124,7 @@ public class SimpleLoader {
             writeOptionalArray("taxon_label_synonym", generator,
                 (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
           } else {
-            // TODO one ttl data are fixed, throw an error or warning when no taxons are found
+            // TODO once ttl data are fixed, throw an error or warning when no taxons are found
             generator.writeStringField("taxon", "");
             generator.writeStringField("taxon_label", "");
             writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
