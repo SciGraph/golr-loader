@@ -86,7 +86,7 @@ class ClosureUtil {
 
   private Closure getUncachedClosure(Node start, Collection<DirectedRelationshipType> types) {
     Closure closure = new Closure();
-    TraversalDescription description = graphDb.traversalDescription().depthFirst().uniqueness(Uniqueness.NODE_GLOBAL);
+    TraversalDescription description = graphDb.traversalDescription().breadthFirst().uniqueness(Uniqueness.NODE_GLOBAL);
     for (DirectedRelationshipType type: checkNotNull(types)) {
       description = description.relationships(type.getType(), type.getDirection());
     }
