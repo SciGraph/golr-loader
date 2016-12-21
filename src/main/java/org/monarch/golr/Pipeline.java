@@ -68,30 +68,24 @@ public class Pipeline {
 
   public static Options getOptions() {
     Options options = new Options();
-    Option option =
-        Option.builder("g").longOpt("graph").required().hasArg()
-            .desc("The Neo4j graph configuration").build();
+    Option option = Option.builder("g").longOpt("graph").required().hasArg()
+        .desc("The Neo4j graph configuration").build();
     options.addOption(option);
-    option =
-        Option.builder("q").longOpt("query").required().hasArg().desc("The query configuration")
-            .build();
+    option = Option.builder("q").longOpt("query").required().hasArg()
+        .desc("The query configuration").build();
     options.addOption(option);
-    option =
-        Option.builder("s").longOpt("solr-server").required(false).hasArg()
-            .desc("An optional Solr server to update").build();
+    option = Option.builder("s").longOpt("solr-server").required(false).hasArg()
+        .desc("An optional Solr server to update").build();
     options.addOption(option);
-    option =
-        Option.builder("o").longOpt("output").required(false).hasArg()
-            .desc("An optional output file for the JSON").build();
+    option = Option.builder("o").longOpt("output").required(false).hasArg()
+        .desc("An optional output file for the JSON").build();
     options.addOption(option);
-    option =
-        Option
-            .builder("onlyupload")
-            .longOpt("onlyupload")
-            .required(false)
-            .desc(
-                "To only upload the JSON. The -o  and -s arguments are mandatory with this option.")
-            .build();
+    option = Option.builder("onlyupload").longOpt("onlyupload").required(false)
+        .desc("To only upload the JSON. The -o  and -s arguments are mandatory with this option.")
+        .build();
+    options.addOption(option);
+    option = Option.builder("d").longOpt("delete-json").required(false)
+        .desc("Do not keep the generated json files.").build();
     options.addOption(option);
     return options;
   }
@@ -107,10 +101,14 @@ public class Pipeline {
     Optional<String> solrServer = Optional.absent();
     Optional<String> outputFolder = Optional.absent();
     boolean onlyUpload = false;
+    boolean deleteJson = false;
     try {
       cmd = parser.parse(options, args);
       if (cmd.hasOption("onlyupload")) {
         onlyUpload = true;
+      }
+      if (cmd.hasOption("delete-json")) {
+        deleteJson = true;
       }
       if (cmd.hasOption("s")) {
         solrServer = Optional.of(cmd.getOptionValue("s"));
@@ -148,9 +146,8 @@ public class Pipeline {
               HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
                   .setSSLContext(sslContext).build();
           Request request =
-              Request.Post(
-                  new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/")
-                      + SOLR_JSON_URL_SUFFIX)).bodyFile(fileEntry, ContentType.APPLICATION_JSON);
+              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/")
+                  + SOLR_JSON_URL_SUFFIX)).bodyFile(fileEntry, ContentType.APPLICATION_JSON);
 
           Executor executor = Executor.newInstance(httpClient);
           String result = executor.execute(request).returnContent().asString();
@@ -161,14 +158,13 @@ public class Pipeline {
         }
       }
     } else {
-      Injector i =
-          Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
-              new AbstractModule() {
-                @Override
-                protected void configure() {
-                  bind(GraphAspect.class).to(EvidenceAspect.class);
-                }
-              });
+      Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
+          new AbstractModule() {
+            @Override
+            protected void configure() {
+              bind(GraphAspect.class).to(EvidenceAspect.class);
+            }
+          });
 
       GolrLoader loader = i.getInstance(GolrLoader.class);
 
@@ -186,9 +182,8 @@ public class Pipeline {
           outputFile = Files.createTempFile("golr-load", ".json").toFile();
           outputFile.deleteOnExit();
         }
-        final Future<Boolean> contentFuture =
-            pool.submit(new GolrWorker(solrServer, outputFile, loader, query, SOLR_JSON_URL_SUFFIX,
-                SOLR_LOCK));
+        final Future<Boolean> contentFuture = pool.submit(new GolrWorker(solrServer, outputFile,
+            loader, query, SOLR_JSON_URL_SUFFIX, SOLR_LOCK, deleteJson));
         futures.add(contentFuture);
       }
 
