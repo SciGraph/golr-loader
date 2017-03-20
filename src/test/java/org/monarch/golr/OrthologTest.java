@@ -1,8 +1,6 @@
 package org.monarch.golr;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import io.scigraph.internal.CypherUtil;
-import io.scigraph.internal.GraphApi;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -13,6 +11,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.monarch.golr.beans.GolrCypherQuery;
 
+import io.scigraph.internal.CypherUtil;
+import io.scigraph.internal.GraphApi;
+
 public class OrthologTest extends GolrLoadSetup {
 
   GolrLoader processor;
@@ -21,11 +22,11 @@ public class OrthologTest extends GolrLoadSetup {
   @Before
   public void setup() {
     EvidenceProcessorStub stub =
-        new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil);
+        new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
     CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
     processor =
         new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil,
-            new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil));
+            new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil, curieUtil));
   }
 
   @Test

@@ -22,9 +22,9 @@ public class GolrLoaderTest extends GolrLoadSetup {
 
   @Before
   public void setup() {
-    EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil);
+    EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
     CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
-    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil, new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil));
+    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil, new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil, curieUtil));
   }
 
   @Test

@@ -1,14 +1,6 @@
 package org.monarch.golr;
 
 import static com.google.common.collect.Lists.transform;
-import io.scigraph.frames.Concept;
-import io.scigraph.frames.NodeProperties;
-import io.scigraph.internal.CypherUtil;
-import io.scigraph.internal.GraphApi;
-import io.scigraph.neo4j.Graph;
-import io.scigraph.neo4j.GraphUtil;
-import io.scigraph.owlapi.OwlRelationships;
-import io.scigraph.owlapi.curies.CurieUtil;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -34,6 +26,7 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
+import org.prefixcommons.CurieUtil;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -41,6 +34,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import io.scigraph.frames.Concept;
+import io.scigraph.frames.NodeProperties;
+import io.scigraph.internal.CypherUtil;
+import io.scigraph.internal.GraphApi;
+import io.scigraph.neo4j.Graph;
+import io.scigraph.neo4j.GraphUtil;
+import io.scigraph.owlapi.OwlRelationships;
 
 public class SimpleLoader {
 
@@ -55,6 +56,9 @@ public class SimpleLoader {
   CurieUtil curieUtil;
   GraphApi api;
   Set<String> unwantedLabels;
+  
+
+  Set<String> tmp = new HashSet<String>();
 
   @Inject
   public SimpleLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil,
@@ -68,8 +72,8 @@ public class SimpleLoader {
     unwantedLabels.add(cliqueLeaderString);
   }
 
-  private static final RelationshipType inTaxon = RelationshipType
-      .withName("http://purl.obolibrary.org/obo/RO_0002162");
+  private static final RelationshipType inTaxon =
+      RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162");
 
   // add leaf node or not
   public void generate(Optional<String> outputFile) throws IOException {
@@ -97,8 +101,15 @@ public class SimpleLoader {
           String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
           generator.writeStringField("iri", iri);
           generator.writeStringField("id", curieUtil.getCurie(iri).or(iri));
+          try{
           writeOptionalArray("label", generator,
               GraphUtil.getProperties(baseNode, NodeProperties.LABEL, String.class));
+          } catch(Exception e) {
+            System.out.println(iri);
+            System.out.println(baseNode.getLabels());
+            System.out.println(GraphUtil.getProperties(baseNode, NodeProperties.LABEL, Double.class));
+            throw e;
+          }
           writeOptionalArray("definition", generator,
               GraphUtil.getProperties(baseNode, Concept.DEFINITION, String.class));
           writeOptionalArray("synonym", generator,
@@ -118,8 +129,23 @@ public class SimpleLoader {
             String taxonIri =
                 GraphUtil.getProperty(taxon.get(), NodeProperties.IRI, String.class).get();
             generator.writeStringField("taxon", curieUtil.getCurie(taxonIri).or(taxonIri));
-            String taxonLabel =
-                GraphUtil.getProperty(taxon.get(), NodeProperties.LABEL, String.class).or("");
+
+            Collection<String> lbs =
+                GraphUtil.getProperties(taxon.get(), NodeProperties.LABEL, String.class);
+            String taxonLabel = "";
+            if (lbs.size() >= 1) {
+              taxonLabel = lbs.iterator().next();
+            }
+            if (lbs.size() > 1 && !tmp.contains(taxon.get().getProperty("iri").toString())) {
+              tmp.add(taxon.get().getProperty("iri").toString());
+              System.out.println("Multiple taxon labels");
+              System.out.println(taxon.get().getProperty("iri").toString());
+              Iterator<String> it = lbs.iterator();
+              while (it.hasNext()) {
+                System.out.println(it.next());
+              }
+            }
+
             generator.writeStringField("taxon_label", taxonLabel);
             writeOptionalArray("taxon_label_synonym", generator,
                 (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
@@ -131,8 +157,9 @@ public class SimpleLoader {
           }
 
           // categories
-          writeOptionalArray("category", generator, Lists.newArrayList(baseNode.getLabels())
-              .stream().filter(label -> labels.contains(label.name())).collect(Collectors.toList()));
+          writeOptionalArray("category", generator,
+              Lists.newArrayList(baseNode.getLabels()).stream()
+                  .filter(label -> labels.contains(label.name())).collect(Collectors.toList()));
 
           // equivalences
           List<String> equivalences = new ArrayList<String>();
@@ -140,8 +167,8 @@ public class SimpleLoader {
               .relationships(OwlRelationships.OWL_SAME_AS)
               .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS).traverse(baseNode)) {
             if (path.length() > 0) {
-              equivalences.add(GraphUtil.getProperty(path.endNode(), NodeProperties.IRI,
-                  String.class).get());
+              equivalences.add(
+                  GraphUtil.getProperty(path.endNode(), NodeProperties.IRI, String.class).get());
             }
           }
           writeOptionalArray("equivalent_iri", generator, equivalences);

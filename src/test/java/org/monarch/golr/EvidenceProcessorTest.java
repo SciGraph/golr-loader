@@ -23,9 +23,10 @@ public class EvidenceProcessorTest extends GolrLoadSetup {
 
   @Before
   public void setup() {
-    processor = new EvidenceProcessor(graphDb, new EvidenceAspectStub(), closureUtil, null);
+    processor = new EvidenceProcessor(graphDb, new EvidenceAspectStub(), closureUtil, null, curieUtil);
     Result result = graphDb.execute("MATCH (thing)-[c:CAUSES]->(otherThing) RETURN *");
-    graph = TinkerGraphUtil.resultToGraph(result);
+    TinkerGraphUtil tgu = new TinkerGraphUtil(curieUtil);
+    graph = tgu.resultToGraph(result);
     processor.addAssociations(graph);
   }
 

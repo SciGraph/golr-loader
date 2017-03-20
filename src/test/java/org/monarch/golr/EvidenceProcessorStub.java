@@ -1,9 +1,6 @@
 package org.monarch.golr;
 
 import static java.util.Collections.emptyList;
-import io.scigraph.bbop.BbopGraphUtil;
-import io.scigraph.internal.GraphAspect;
-import io.scigraph.owlapi.curies.CurieUtil;
 
 import java.util.HashMap;
 import java.util.List;
@@ -11,14 +8,18 @@ import java.util.Set;
 
 import org.monarch.golr.beans.Closure;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.prefixcommons.CurieUtil;
 
 import com.tinkerpop.blueprints.Graph;
 
+import io.scigraph.bbop.BbopGraphUtil;
+import io.scigraph.internal.GraphAspect;
+
 public class EvidenceProcessorStub extends EvidenceProcessor {
 
-  EvidenceProcessorStub(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil) {
-    super(graphDb, aspect, closureUtil, new BbopGraphUtil(new CurieUtil(
-        new HashMap<String, String>())));
+  EvidenceProcessorStub(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil,
+      CurieUtil curieUtil) {
+    super(graphDb, aspect, closureUtil, new BbopGraphUtil(curieUtil), curieUtil);
   }
 
   @Override

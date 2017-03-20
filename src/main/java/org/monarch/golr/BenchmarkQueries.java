@@ -32,23 +32,23 @@ import com.google.inject.Injector;
 
 public class BenchmarkQueries {
 
-  static final String queriesDirectory = "/home/jnguyenxuan/golrqueries";
+  static final String queriesDirectory =
+      "/home/jnguyenxuan/workspace/monarch-cypher-queries/src/main/cypher/golr-loader/";
   static final String configurationPath = "src/test/resources/benchmarkconf.yaml";
 
-  public static void main(String[] args) throws JsonParseException, JsonMappingException,
-      IOException {
+  public static void main(String[] args)
+      throws JsonParseException, JsonMappingException, IOException {
 
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     Neo4jConfiguration neo4jConfig =
         mapper.readValue(new File(configurationPath), Neo4jConfiguration.class);
-    Injector i =
-        Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
-            new AbstractModule() {
-              @Override
-              protected void configure() {
-                bind(GraphAspect.class).to(EvidenceAspect.class);
-              }
-            });
+    Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
+        new AbstractModule() {
+          @Override
+          protected void configure() {
+            bind(GraphAspect.class).to(EvidenceAspect.class);
+          }
+        });
 
     GraphDatabaseService graphDb = i.getInstance(GraphDatabaseService.class);
     CypherUtil cypherUtil = i.getInstance(CypherUtil.class);
@@ -62,18 +62,16 @@ public class BenchmarkQueries {
           System.out.println(filePath);
           Stopwatch sw = Stopwatch.createStarted();
 
-          //int count = runCypherQuery(query, graphDb, cypherUtil);
-          int count = runGolrQuery(query, loader, filePath.toFile());
+          int count = runCypherQuery(query, graphDb, cypherUtil);
+          // int count = runGolrQuery(query, loader, filePath.toFile());
 
-        System.out.println(sw.stop());
-        System.out.println(count);
-      } catch (Exception e) {
-        e.printStackTrace();
+          System.out.println(sw.stop());
+          System.out.println(count);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
       }
-    }
-  } );
-
-
+    });
 
     graphDb.shutdown();
 
@@ -83,9 +81,8 @@ public class BenchmarkQueries {
       throws IOException, ExecutionException, ClassNotFoundException {
     FileWriter writer = new FileWriter(new File(file.getAbsolutePath() + ".json"));
     int count = 0;
-    count =
-        toIntExact(loader.process(query, writer,
-            Optional.of(FilenameUtils.removeExtension(file.getName()))));
+    count = toIntExact(
+        loader.process(query, writer, Optional.of(FilenameUtils.removeExtension(file.getName()))));
     return count;
   }
 

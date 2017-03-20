@@ -1,10 +1,5 @@
 package org.monarch.golr;
 
-import io.scigraph.frames.CommonProperties;
-import io.scigraph.frames.NodeProperties;
-import io.scigraph.owlapi.OwlRelationships;
-import io.scigraph.owlapi.curies.CurieUtil;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
@@ -17,9 +12,14 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.prefixcommons.CurieUtil;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+
+import io.scigraph.frames.CommonProperties;
+import io.scigraph.frames.NodeProperties;
+import io.scigraph.owlapi.OwlRelationships;
 
 public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
 

@@ -4,12 +4,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getFirst;
 import static com.google.common.collect.Lists.transform;
-import io.scigraph.frames.CommonProperties;
-import io.scigraph.frames.NodeProperties;
-import io.scigraph.neo4j.DirectedRelationshipType;
-import io.scigraph.neo4j.GraphUtil;
-import io.scigraph.owlapi.OwlLabels;
-import io.scigraph.owlapi.curies.CurieUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,12 +23,19 @@ import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Uniqueness;
+import org.prefixcommons.CurieUtil;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+
+import io.scigraph.frames.CommonProperties;
+import io.scigraph.frames.NodeProperties;
+import io.scigraph.neo4j.DirectedRelationshipType;
+import io.scigraph.neo4j.GraphUtil;
+import io.scigraph.owlapi.OwlLabels;
 
 class ClosureUtil {
 
