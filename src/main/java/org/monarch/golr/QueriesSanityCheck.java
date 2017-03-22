@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -32,22 +34,22 @@ import io.scigraph.internal.CypherUtil;
 public class QueriesSanityCheck {
 
   private final static ExecutorService timeoutExecutorService = Executors.newSingleThreadExecutor();
-  private final static int timeout = 6; // in hours
+  private final static int timeout = 1; // in hours
 
 
   public static void main(String[] args)
       throws JsonParseException, JsonMappingException, IOException, InterruptedException {
-    if (args.length != 3) {
-      System.out.println("usage: [graphPath] [queryPath] [curiePath]");
+    if (args.length < 3) {
+      System.out.println("usage: [graphPath] [curiePath] [queryPath*]");
       System.exit(-1);
     } else {
-       String graphPath = args[0];
-       String queryPath = args[1];
-       String curiePath = args[2];
+      String graphPath = args[0];
+      String curiePath = args[1];
+      List<String> queryPaths = Arrays.asList(args).subList(2, args.length);
       // String graphPath = "/home/jnguyenxuan/workspace/SciGraph-playground/graph";
-      // String queryPath =
-      // "/home/jnguyenxuan/workspace/monarch-cypher-queries/src/main/cypher/golr-loader/";
       // String curiePath = "curie_map.yaml";
+      // List<String> queryPath =
+      // "/home/jnguyenxuan/workspace/monarch-cypher-queries/src/main/cypher/golr-loader/";
 
       Set<String> failedQueries = Sets.newHashSet();
 
@@ -59,25 +61,31 @@ public class QueriesSanityCheck {
       CurieUtil curieUtil = new CurieUtil(curieMap);
       CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
 
-      Files.walk(Paths.get(queryPath)).forEach(filePath -> {
-        if (Files.isRegularFile(filePath)) {
-          GolrCypherQuery query;
-          try {
-            query = mapper.readValue(filePath.toFile(), GolrCypherQuery.class);
-            System.out.println(filePath);
-            Stopwatch sw = Stopwatch.createStarted();
+      queryPaths.stream().forEach(queryPath -> {
+        try {
+          Files.walk(Paths.get(queryPath)).forEach(filePath -> {
+            if (Files.isRegularFile(filePath)) {
+              GolrCypherQuery query;
+              try {
+                query = mapper.readValue(filePath.toFile(), GolrCypherQuery.class);
+                System.out.println(filePath);
+                Stopwatch sw = Stopwatch.createStarted();
 
-            int count = runCypherQueryWithTimeout(query, graphDb, cypherUtil, timeout);
+                int count = runCypherQueryWithTimeout(query, graphDb, cypherUtil, timeout);
 
-            System.out.println(sw.stop());
-            System.out.println(count);
-          } catch (TimeoutException e) {
-            failedQueries.add(filePath.getFileName().toString());
-            System.out.println("Timeout!!");
-          } catch (Exception e) {
-            failedQueries.add(filePath.getFileName().toString());
-            e.printStackTrace();
-          }
+                System.out.println(sw.stop());
+                System.out.println(count);
+              } catch (TimeoutException e) {
+                failedQueries.add(filePath.getFileName().toString());
+                System.out.println("Timeout!!");
+              } catch (Exception e) {
+                failedQueries.add(filePath.getFileName().toString());
+                e.printStackTrace();
+              }
+            }
+          });
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
       });
 

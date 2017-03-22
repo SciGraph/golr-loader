@@ -30,6 +30,11 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
+/**
+ * This is very similar to @link{QueriesSanityCheck}, except that it offers the flexibility to run
+ * the whole golr query and generate the json.
+ *
+ */
 public class BenchmarkQueries {
 
   static final String queriesDirectory =
