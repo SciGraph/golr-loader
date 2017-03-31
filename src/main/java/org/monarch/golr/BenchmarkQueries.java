@@ -38,7 +38,7 @@ import com.google.inject.Injector;
 public class BenchmarkQueries {
 
   static final String queriesDirectory =
-      "/home/jnguyenxuan/workspace/monarch-cypher-queries/src/main/cypher/golr-loader/";
+      "/home/jnguyenxuan/workspace/monarch-cypher-queries/src/main/cypher/feature-location/";
   static final String configurationPath = "src/test/resources/benchmarkconf.yaml";
 
   public static void main(String[] args)

@@ -172,7 +172,6 @@ public class Pipeline {
           Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
       List<Future<Boolean>> futures = new ArrayList<>();
 
-
       for (final File fileEntry : filePath.listFiles()) {
         GolrCypherQuery query = mapper.readValue(fileEntry, GolrCypherQuery.class);
         File outputFile = null;

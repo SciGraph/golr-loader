@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +34,9 @@ import io.scigraph.internal.CypherUtil;
 
 public class QueriesSanityCheck {
 
-  private final static ExecutorService timeoutExecutorService = Executors.newSingleThreadExecutor();
+  private final static ExecutorService timeoutExecutorService =
+      Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() / 2);
   private final static int timeout = 1; // in hours
-
 
   public static void main(String[] args)
       throws JsonParseException, JsonMappingException, IOException, InterruptedException {
@@ -61,6 +62,9 @@ public class QueriesSanityCheck {
       CurieUtil curieUtil = new CurieUtil(curieMap);
       CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
 
+      List<Pair<Future<Integer>, String>> futures = new ArrayList<Pair<Future<Integer>, String>>();
+
+      // TODO fully parallelize this
       queryPaths.stream().forEach(queryPath -> {
         try {
           Files.walk(Paths.get(queryPath)).forEach(filePath -> {
@@ -68,16 +72,11 @@ public class QueriesSanityCheck {
               GolrCypherQuery query;
               try {
                 query = mapper.readValue(filePath.toFile(), GolrCypherQuery.class);
-                System.out.println(filePath);
-                Stopwatch sw = Stopwatch.createStarted();
+                String fileName = filePath.getFileName().toString();
+                futures.add(new Pair<Future<Integer>, String>(
+                    runCypherQueryWithTimeout(fileName, query, graphDb, cypherUtil, timeout),
+                    fileName));
 
-                int count = runCypherQueryWithTimeout(query, graphDb, cypherUtil, timeout);
-
-                System.out.println(sw.stop());
-                System.out.println(count);
-              } catch (TimeoutException e) {
-                failedQueries.add(filePath.getFileName().toString());
-                System.out.println("Timeout!!");
               } catch (Exception e) {
                 failedQueries.add(filePath.getFileName().toString());
                 e.printStackTrace();
@@ -86,6 +85,17 @@ public class QueriesSanityCheck {
           });
         } catch (IOException e) {
           throw new RuntimeException(e);
+        }
+      });
+
+      futures.stream().forEach(pair -> {
+        try {
+          pair.getFirst().get(timeout, TimeUnit.HOURS);
+        } catch (InterruptedException | ExecutionException e) {
+          e.printStackTrace();
+        } catch (TimeoutException e) {
+          failedQueries.add(pair.getSecond());
+          System.out.println(pair.getSecond() + " timed out!");
         }
       });
 
@@ -101,8 +111,9 @@ public class QueriesSanityCheck {
     }
   }
 
-  public static int runCypherQuery(GolrCypherQuery query, GraphDatabaseService graphDb,
-      CypherUtil cypherUtil) {
+  public static int runCypherQuery(String filePath, GolrCypherQuery query,
+      GraphDatabaseService graphDb, CypherUtil cypherUtil) {
+    Stopwatch sw = Stopwatch.createStarted();
     int count = 0;
     try {
 
@@ -117,15 +128,16 @@ public class QueriesSanityCheck {
     } catch (Exception e) {
       e.printStackTrace();
     }
+    System.out.println(filePath + " - " + sw.stop() + " - " + count);
     return count;
   }
 
-  public static int runCypherQueryWithTimeout(GolrCypherQuery query, GraphDatabaseService graphDb,
-      CypherUtil cypherUtil, int timeout)
+  public static Future<Integer> runCypherQueryWithTimeout(String filePath, GolrCypherQuery query,
+      GraphDatabaseService graphDb, CypherUtil cypherUtil, int timeout)
       throws ExecutionException, InterruptedException, TimeoutException {
     Future<Integer> future =
-        timeoutExecutorService.submit(() -> runCypherQuery(query, graphDb, cypherUtil));
-    return future.get(timeout, TimeUnit.HOURS);
+        timeoutExecutorService.submit(() -> runCypherQuery(filePath, query, graphDb, cypherUtil));
+    return future;
   }
 
 }

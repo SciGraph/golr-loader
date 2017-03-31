@@ -2,15 +2,24 @@ package org.monarch.golr;
 
 import java.io.Serializable;
 
-public class Pair implements Serializable {
+public class Pair<F, S> implements Serializable {
 
   private static final long serialVersionUID = -3569876626659744588L;
-  private final String first;
-  private final String second;
 
-  public Pair(String first, String second) {
+  private final F first;
+  private final S second;
+
+  public Pair(F first, S second) {
     this.first = first;
     this.second = second;
+  }
+
+  public F getFirst() {
+    return first;
+  }
+
+  public S getSecond() {
+    return second;
   }
 
   @Override

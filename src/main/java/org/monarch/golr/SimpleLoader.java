@@ -105,9 +105,9 @@ public class SimpleLoader {
           writeOptionalArray("label", generator,
               GraphUtil.getProperties(baseNode, NodeProperties.LABEL, String.class));
           } catch(Exception e) {
-            System.out.println(iri);
-            System.out.println(baseNode.getLabels());
-            System.out.println(GraphUtil.getProperties(baseNode, NodeProperties.LABEL, Double.class));
+            logger.severe(iri);
+            logger.severe(baseNode.getLabels().toString());
+            logger.severe(GraphUtil.getProperties(baseNode, NodeProperties.LABEL, Double.class).toString());
             throw e;
           }
           writeOptionalArray("definition", generator,

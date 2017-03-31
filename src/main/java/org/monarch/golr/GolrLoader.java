@@ -51,7 +51,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Resources;
-import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 
 import io.scigraph.frames.CommonProperties;
 import io.scigraph.frames.NodeProperties;
@@ -352,8 +351,8 @@ public class GolrLoader {
 
     DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose()
         .transactionDisable().cacheSize(1000000).make();
-    ConcurrentMap<Pair, String> resultsSerializable = db.createHashMap("results").make();
-    ConcurrentMap<Pair, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
+    ConcurrentMap<Pair<String, String>, String> resultsSerializable = db.createHashMap("results").make();
+    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
 
     JsonGenerator generator = new JsonFactory().createGenerator(writer);
     ResultSerializer serializer = factory.create(generator);
@@ -367,7 +366,7 @@ public class GolrLoader {
       String subjectIri = (String) ((Node) row.get("subject")).getProperty(NodeProperties.IRI);
       String objectIri = (String) ((Node) row.get("object")).getProperty(NodeProperties.IRI);
 
-      Pair pair = new Pair(subjectIri, objectIri);
+      Pair<String, String> pair = new Pair<String, String>(subjectIri, objectIri);
 
       String existingResult = resultsSerializable.get(pair);
       if (existingResult == null) {
@@ -414,10 +413,10 @@ public class GolrLoader {
 
     }
 
-    for (Entry<Pair, String> resultSerializable : resultsSerializable.entrySet()) {
+    for (Entry<Pair<String, String>, String> resultSerializable : resultsSerializable.entrySet()) {
       generator.writeStartObject();
 
-      Pair p = resultSerializable.getKey();
+      Pair<String, String> p = resultSerializable.getKey();
       EvidenceGraphInfo pairGraph = resultsGraph.get(p);
 
       ObjectMapper mapper = new ObjectMapper();
