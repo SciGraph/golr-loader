@@ -41,6 +41,10 @@ class EvidenceProcessor {
   private final BbopGraphUtil bbopUtil;
   private final CurieUtil curieUtil;
 
+  private String hasEvidence;
+  private String source;
+  private String isDefinedBy;
+
   @Inject
   EvidenceProcessor(GraphDatabaseService graphDb, GraphAspect aspect, ClosureUtil closureUtil,
       BbopGraphUtil bbopUtil, CurieUtil curieUtil) {
@@ -49,6 +53,15 @@ class EvidenceProcessor {
     this.closureUtil = closureUtil;
     this.bbopUtil = bbopUtil;
     this.curieUtil = curieUtil;
+
+    String hasEvidenceStr = "http://purl.obolibrary.org/obo/RO_0002558";
+    this.hasEvidence = curieUtil.getCurie(hasEvidenceStr).or(hasEvidenceStr);
+
+    String sourceStr = "http://purl.org/dc/elements/1.1/source";
+    this.source = curieUtil.getCurie(sourceStr).or(sourceStr);
+
+    String isDefinedByStr = OwlRelationships.RDFS_IS_DEFINED_BY.name();
+    this.isDefinedBy = curieUtil.getCurie(isDefinedByStr).or(isDefinedByStr);
   }
 
   void addAssociations(Graph graph) {
@@ -91,7 +104,7 @@ class EvidenceProcessor {
   List<Closure> getEvidence(Graph graph) {
     List<Closure> closures = new ArrayList<>();
     for (Edge edge : graph.getEdges()) {
-      if ("http://purl.obolibrary.org/obo/RO_0002558".equals(edge.getLabel())) {
+      if (hasEvidence.equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
         Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
         closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
@@ -103,7 +116,7 @@ class EvidenceProcessor {
   List<Closure> getSource(Graph graph) {
     List<Closure> closures = new ArrayList<>();
     for (Edge edge : graph.getEdges()) {
-      if ("http://purl.org/dc/elements/1.1/source".equals(edge.getLabel())) {
+      if (source.equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
         Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
         closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
@@ -115,8 +128,7 @@ class EvidenceProcessor {
   List<String> getDefinedBys(Graph graph) {
     Set<String> definedBys = new HashSet<>();
     for (Edge edge : graph.getEdges()) {
-      definedBys.addAll(TinkerGraphUtil.getProperties(edge,
-          OwlRelationships.RDFS_IS_DEFINED_BY.name(), String.class));
+      definedBys.addAll(TinkerGraphUtil.getProperties(edge, isDefinedBy, String.class));
     }
     return newArrayList(definedBys);
   }

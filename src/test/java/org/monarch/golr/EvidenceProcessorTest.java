@@ -18,6 +18,8 @@ import com.tinkerpop.blueprints.Graph;
 
 public class EvidenceProcessorTest extends GolrLoadSetup {
 
+  // TODO test with curieUtil
+  
   EvidenceProcessor processor;
   Graph graph;
 
