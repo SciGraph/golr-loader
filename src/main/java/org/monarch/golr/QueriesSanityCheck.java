@@ -36,7 +36,7 @@ public class QueriesSanityCheck {
 
   private final static ExecutorService timeoutExecutorService =
       Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() / 2);
-  private final static int timeout = 1; // in hours
+  private final static int timeout = 2; // in hours
 
   public static void main(String[] args)
       throws JsonParseException, JsonMappingException, IOException, InterruptedException {
