@@ -1,10 +1,8 @@
 package org.monarch.golr;
 
-import io.scigraph.neo4j.Neo4jConfiguration;
-import io.scigraph.neo4j.Neo4jModule;
-
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -19,10 +17,12 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+
+import io.scigraph.neo4j.Neo4jConfiguration;
+import io.scigraph.neo4j.Neo4jModule;
 
 
 public class SimpleLoaderMain {
@@ -52,7 +52,7 @@ public class SimpleLoaderMain {
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
     Neo4jConfiguration neo4jConfig = null;
-    Optional<String> outputFile = Optional.absent();
+    Optional<String> outputFile = Optional.empty();
     try {
       cmd = parser.parse(options, args);
       if (cmd.hasOption("o")) {

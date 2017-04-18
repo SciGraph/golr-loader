@@ -1,10 +1,5 @@
 package org.monarch.golr;
 
-import io.scigraph.internal.EvidenceAspect;
-import io.scigraph.internal.GraphAspect;
-import io.scigraph.neo4j.Neo4jConfiguration;
-import io.scigraph.neo4j.Neo4jModule;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -15,6 +10,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,10 +43,14 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.google.common.base.Optional;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+
+import io.scigraph.internal.EvidenceAspect;
+import io.scigraph.internal.GraphAspect;
+import io.scigraph.neo4j.Neo4jConfiguration;
+import io.scigraph.neo4j.Neo4jModule;
 
 public class Pipeline {
 
@@ -98,8 +98,8 @@ public class Pipeline {
     CommandLine cmd;
     Neo4jConfiguration neo4jConfig = null;
     File filePath = null;
-    Optional<String> solrServer = Optional.absent();
-    Optional<String> outputFolder = Optional.absent();
+    Optional<String> solrServer = Optional.empty();
+    Optional<String> outputFolder = Optional.empty();
     boolean onlyUpload = false;
     boolean deleteJson = false;
     try {

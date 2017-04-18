@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.monarch.golr.beans.Closure;
@@ -17,7 +18,6 @@ import org.neo4j.graphdb.Node;
 import org.prefixcommons.CurieUtil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
@@ -55,13 +55,13 @@ class EvidenceProcessor {
     this.curieUtil = curieUtil;
 
     String hasEvidenceStr = "http://purl.obolibrary.org/obo/RO_0002558";
-    this.hasEvidence = curieUtil.getCurie(hasEvidenceStr).or(hasEvidenceStr);
+    this.hasEvidence = curieUtil.getCurie(hasEvidenceStr).orElse(hasEvidenceStr);
 
     String sourceStr = "http://purl.org/dc/elements/1.1/source";
-    this.source = curieUtil.getCurie(sourceStr).or(sourceStr);
+    this.source = curieUtil.getCurie(sourceStr).orElse(sourceStr);
 
     String isDefinedByStr = OwlRelationships.RDFS_IS_DEFINED_BY.name();
-    this.isDefinedBy = curieUtil.getCurie(isDefinedByStr).or(isDefinedByStr);
+    this.isDefinedBy = curieUtil.getCurie(isDefinedByStr).orElse(isDefinedByStr);
   }
 
   void addAssociations(Graph graph) {
@@ -69,7 +69,7 @@ class EvidenceProcessor {
   }
 
   String getEvidenceGraph(Graph graph) {
-    return getEvidenceGraph(graph, Optional.absent());
+    return getEvidenceGraph(graph, Optional.empty());
   }
 
   String getEvidenceGraph(Graph graph, Optional<String> metaSourceQuery) {

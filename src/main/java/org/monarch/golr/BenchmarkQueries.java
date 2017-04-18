@@ -1,17 +1,13 @@
 package org.monarch.golr;
 
 import static java.lang.Math.toIntExact;
-import io.scigraph.internal.CypherUtil;
-import io.scigraph.internal.EvidenceAspect;
-import io.scigraph.internal.GraphAspect;
-import io.scigraph.neo4j.Neo4jConfiguration;
-import io.scigraph.neo4j.Neo4jModule;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.io.FilenameUtils;
@@ -24,11 +20,16 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+
+import io.scigraph.internal.CypherUtil;
+import io.scigraph.internal.EvidenceAspect;
+import io.scigraph.internal.GraphAspect;
+import io.scigraph.neo4j.Neo4jConfiguration;
+import io.scigraph.neo4j.Neo4jModule;
 
 /**
  * This is very similar to @link{QueriesSanityCheck}, except that it offers the flexibility to run
