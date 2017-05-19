@@ -59,7 +59,7 @@ class ClosureUtil {
 
   private String getCurieOrIri(Node node) {
     String iri = (String)checkNotNull(node).getProperty(CommonProperties.IRI);
-    return curieUtil.getCurie(iri).or(iri);
+    return curieUtil.getCurie(iri).orElse(iri);
   }
 
   /*private String getCurieOrIri(Vertex vertex) {

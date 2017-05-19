@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -44,7 +45,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -221,7 +221,7 @@ public class GolrLoader {
         return Optional.of(path.endNode());
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   Optional<Node> getChromosome(Node source) {
@@ -232,7 +232,7 @@ public class GolrLoader {
         }
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   // TODO return array of all found nodes
@@ -243,7 +243,7 @@ public class GolrLoader {
         return Optional.of(path.endNode());
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   Collection<Node> getOrthologs(Node source) throws IOException {
@@ -318,7 +318,7 @@ public class GolrLoader {
 
   long process(GolrCypherQuery query, Writer writer)
       throws IOException, ExecutionException, ClassNotFoundException {
-    return process(query, writer, Optional.absent());
+    return process(query, writer, Optional.empty());
   }
 
   long process(GolrCypherQuery query, Writer writer, Optional<String> metaSourceQuery)
@@ -541,7 +541,7 @@ public class GolrLoader {
             @Override
             public String apply(Node node) {
               String iri = GraphUtil.getProperty(node, NodeProperties.IRI, String.class).get();
-              return curieUtil.getCurie(iri).or(iri);
+              return curieUtil.getCurie(iri).orElse(iri);
             }
           });
           serializer.writeArray("subject_ortholog_closure", new ArrayList<String>(orthologsId));

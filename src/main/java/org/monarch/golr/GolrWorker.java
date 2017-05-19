@@ -3,6 +3,7 @@ package org.monarch.golr;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URI;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,8 +20,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
 import org.monarch.golr.beans.GolrCypherQuery;
-
-import com.google.common.base.Optional;
 
 public class GolrWorker implements Callable<Boolean> {
 

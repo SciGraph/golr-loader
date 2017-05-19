@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -31,7 +32,6 @@ import org.prefixcommons.CurieUtil;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -100,7 +100,7 @@ public class SimpleLoader {
           generator.writeStartObject();
           String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
           generator.writeStringField("iri", iri);
-          generator.writeStringField("id", curieUtil.getCurie(iri).or(iri));
+          generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
           try{
           writeOptionalArray("label", generator,
               GraphUtil.getProperties(baseNode, NodeProperties.LABEL, String.class));
@@ -116,7 +116,7 @@ public class SimpleLoader {
               GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
 
           // taxon
-          Optional<Node> taxon = Optional.absent();
+          Optional<Node> taxon = Optional.empty();
           for (Path path : graphDb.traversalDescription().depthFirst()
               .relationships(inTaxon, Direction.OUTGOING).traverse(baseNode)) {
             if (path.length() > 0) {
@@ -128,7 +128,7 @@ public class SimpleLoader {
           if (taxon.isPresent()) {
             String taxonIri =
                 GraphUtil.getProperty(taxon.get(), NodeProperties.IRI, String.class).get();
-            generator.writeStringField("taxon", curieUtil.getCurie(taxonIri).or(taxonIri));
+            generator.writeStringField("taxon", curieUtil.getCurie(taxonIri).orElse(taxonIri));
 
             Collection<String> lbs =
                 GraphUtil.getProperties(taxon.get(), NodeProperties.LABEL, String.class);
@@ -136,6 +136,7 @@ public class SimpleLoader {
             if (lbs.size() >= 1) {
               taxonLabel = lbs.iterator().next();
             }
+            // TODO wait for a fix on the ttl
             if (lbs.size() > 1 && !tmp.contains(taxon.get().getProperty("iri").toString())) {
               tmp.add(taxon.get().getProperty("iri").toString());
               System.out.println("Multiple taxon labels");
@@ -176,7 +177,7 @@ public class SimpleLoader {
               transform(equivalences, new Function<String, String>() {
                 @Override
                 public String apply(String iri) {
-                  return curieUtil.getCurie(iri).or(iri);
+                  return curieUtil.getCurie(iri).orElse(iri);
                 }
               }));
 
