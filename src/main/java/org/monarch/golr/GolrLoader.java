@@ -431,8 +431,8 @@ public class GolrLoader {
         com.tinkerpop.blueprints.Graph evidenceGraph =
             EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
         processor.addAssociations(evidenceGraph);
-        /*serializer.serialize(EVIDENCE_GRAPH,
-            processor.getEvidenceGraph(evidenceGraph, metaSourceQuery));*/
+        serializer.serialize(EVIDENCE_GRAPH,
+            processor.getEvidenceGraph(evidenceGraph, metaSourceQuery));
 
         // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
         // Don't emit evidence for ontology sources
