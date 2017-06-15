@@ -2,9 +2,7 @@ package org.monarch.golr;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -19,8 +17,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.net.ssl.SSLContext;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -28,16 +24,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.http.client.fluent.Executor;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -59,8 +45,6 @@ public class Pipeline {
   private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
 
   private static ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-
-  private static final String SOLR_JSON_URL_SUFFIX = "update/json?commit=true";
 
   private static final Object SOLR_LOCK = new Object();
 

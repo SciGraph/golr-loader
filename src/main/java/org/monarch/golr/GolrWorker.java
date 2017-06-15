@@ -1,40 +1,11 @@
 package org.monarch.golr;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.net.ssl.SSLContext;
-
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.core.JsonFactory;
-
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.http.client.fluent.Executor;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 public class GolrWorker implements Callable<Boolean> {
