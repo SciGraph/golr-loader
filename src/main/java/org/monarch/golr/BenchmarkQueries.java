@@ -87,8 +87,9 @@ public class BenchmarkQueries {
       throws IOException, ExecutionException, ClassNotFoundException {
     FileWriter writer = new FileWriter(new File(file.getAbsolutePath() + ".json"));
     int count = 0;
+    /*
     count = toIntExact(
-        loader.process(query, writer, Optional.of(FilenameUtils.removeExtension(file.getName()))));
+        loader.process(query, Optional.of(FilenameUtils.removeExtension(file.getName()))));*/
     return count;
   }
 

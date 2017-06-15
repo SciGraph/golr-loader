@@ -12,9 +12,6 @@ class GolrLoaderModule extends AbstractModule {
 
   @Override
   protected void configure() {
-    install(new FactoryModuleBuilder()
-    .implement(ResultSerializer.class, ResultSerializer.class)
-    .build(ResultSerializerFactory.class));
     bind(Graph.class).to(GraphTransactionalImpl.class).in(Singleton.class);
   }
 

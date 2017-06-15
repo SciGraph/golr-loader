@@ -36,6 +36,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.TrustStrategy;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -126,73 +128,35 @@ public class Pipeline {
       System.exit(-1);
     }
 
-
-    if (onlyUpload) {
-      logger.info("Upload only");
-      // ignore ssl certs because letsencrypt is not supported by Oracle yet
-      SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
-        @Override
-        public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
-            throws java.security.cert.CertificateException {
-          // TODO Auto-generated method stub
-          return true;
-        }
-      }).build();
-      File outputPath = new File(outputFolder.get());
-      for (final File fileEntry : outputPath.listFiles()) {
-        logger.info("Posting JSON " + fileEntry.getName() + " to " + solrServer.get());
-        try {
-          CloseableHttpClient httpClient =
-              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                  .setSSLContext(sslContext).build();
-          Request request =
-              Request.Post(new URI(solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/")
-                  + SOLR_JSON_URL_SUFFIX)).bodyFile(fileEntry, ContentType.APPLICATION_JSON);
-
-          Executor executor = Executor.newInstance(httpClient);
-          String result = executor.execute(request).returnContent().asString();
-
-          logger.info(result);
-        } catch (Exception e) {
-          logger.log(Level.SEVERE, "Failed to post JSON " + fileEntry.getName(), e);
-        }
-      }
-    } else {
-      Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
+    Injector i = Guice.createInjector(new GolrLoaderModule(), new Neo4jModule(neo4jConfig),
           new AbstractModule() {
             @Override
             protected void configure() {
               bind(GraphAspect.class).to(EvidenceAspect.class);
             }
+            
           });
 
-      GolrLoader loader = i.getInstance(GolrLoader.class);
+    GolrLoader loader = i.getInstance(GolrLoader.class);
 
-      final ExecutorService pool =
-          Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    final ExecutorService pool =
+        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
       List<Future<Boolean>> futures = new ArrayList<>();
 
-      for (final File fileEntry : filePath.listFiles()) {
-        GolrCypherQuery query = mapper.readValue(fileEntry, GolrCypherQuery.class);
-        File outputFile = null;
-        if (outputFolder.isPresent()) {
-          outputFile = new File(outputFolder.get() + "/" + fileEntry.getName() + ".json");
-        } else {
-          outputFile = Files.createTempFile("golr-load", ".json").toFile();
-          outputFile.deleteOnExit();
-        }
-        final Future<Boolean> contentFuture = pool.submit(new GolrWorker(solrServer, outputFile,
-            loader, query, SOLR_JSON_URL_SUFFIX, SOLR_LOCK, deleteJson));
-        futures.add(contentFuture);
-      }
+    for (final File fileEntry : filePath.listFiles()) {
+      GolrCypherQuery query = mapper.readValue(fileEntry, GolrCypherQuery.class);
 
-      for (Future<Boolean> future : futures) {
-        future.get();
-      }
-      pool.shutdown();
-      pool.awaitTermination(10, TimeUnit.DAYS);
-
+      final Future<Boolean> contentFuture = pool.submit(new GolrWorker(solrServer,
+            loader, query, SOLR_LOCK, fileEntry.getName()));
+      futures.add(contentFuture);
     }
+
+    for (Future<Boolean> future : futures) {
+      future.get();
+    }
+    pool.shutdown();
+    pool.awaitTermination(10, TimeUnit.DAYS);
+    
     logger.info("Golr load completed");
 
   }

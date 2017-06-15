@@ -20,6 +20,11 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.common.SolrInputDocument;
+
 import org.apache.commons.lang3.ClassUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -71,7 +76,6 @@ public class GolrLoader {
   private static final String DEFINED_BY = "is_defined_by";
 
   private final GraphDatabaseService graphDb;
-  private final ResultSerializerFactory factory;
   private final EvidenceProcessor processor;
   private final Graph graph;
   private final CypherUtil cypherUtil;
@@ -95,6 +99,8 @@ public class GolrLoader {
   private static final Label GENE_LABEL = Label.label("gene");
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
+  
+  final static int BATCH_SIZE = 1000000;
 
   private Collection<RelationshipType> parts_of;
   private Collection<RelationshipType> subSequenceOfs;
@@ -111,12 +117,11 @@ public class GolrLoader {
 
   @Inject
   GolrLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil, CurieUtil curieUtil,
-      ResultSerializerFactory factory, EvidenceProcessor processor, GraphApi api) {
+      EvidenceProcessor processor, GraphApi api) {
     this.graphDb = graphDb;
     this.cypherUtil = cypherUtil;
     this.curieUtil = curieUtil;
     this.graph = graph;
-    this.factory = factory;
     this.processor = processor;
     this.api = api;
     try (Transaction tx = graphDb.beginTx()) {
@@ -316,13 +321,13 @@ public class GolrLoader {
       });
 
 
-  long process(GolrCypherQuery query, Writer writer)
-      throws IOException, ExecutionException, ClassNotFoundException {
-    return process(query, writer, Optional.empty());
+  long process(GolrCypherQuery query, SolrClient solrClient, Object solrLock)
+      throws IOException, ExecutionException, ClassNotFoundException, SolrServerException {
+    return process(query, solrClient, solrLock, Optional.empty());
   }
 
-  long process(GolrCypherQuery query, Writer writer, Optional<String> metaSourceQuery)
-      throws IOException, ExecutionException, ClassNotFoundException {
+  long process(GolrCypherQuery query, SolrClient solrClient, Object solrLock, Optional<String> metaSourceQuery)
+      throws IOException, ExecutionException, ClassNotFoundException, SolrServerException {
     long recordCount = 0;
 
     try (Transaction tx = graphDb.beginTx()) {
@@ -334,9 +339,9 @@ public class GolrLoader {
           result.columns().contains("subject") && result.columns().contains("object");
 
       if (isGolrQuery) {
-        recordCount = serializeGolrQuery(query, result, writer, metaSourceQuery);
+        recordCount = serializeGolrQuery(query, result, solrClient, solrLock, metaSourceQuery);
       } else {
-        recordCount = serializedFeatureQuery(query, result, writer, metaSourceQuery);
+        recordCount = serializedFeatureQuery(query, result, solrClient, solrLock, metaSourceQuery);
       }
 
       tx.success();
@@ -345,22 +350,24 @@ public class GolrLoader {
     return recordCount;
   }
 
-  private long serializeGolrQuery(GolrCypherQuery query, Result result, Writer writer,
-      Optional<String> metaSourceQuery)
-      throws IOException, ClassNotFoundException, ExecutionException {
+  private long serializeGolrQuery(GolrCypherQuery query, Result result,
+      SolrClient solrClient, Object solrLock, Optional<String> metaSourceQuery)
+      throws IOException, ClassNotFoundException, ExecutionException, SolrServerException {
 
     DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose()
         .transactionDisable().cacheSize(1000000).make();
-    ConcurrentMap<Pair<String, String>, String> resultsSerializable = db.createHashMap("results").make();
+    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable = db.createHashMap("results").make();
     ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
 
-    JsonGenerator generator = new JsonFactory().createGenerator(writer);
-    ResultSerializer serializer = factory.create(generator);
-    generator.writeStartArray();
+    ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
+    SolrDocUtil docUtil = new SolrDocUtil(closureUtil);
+    Collection<SolrInputDocument> docList = new ArrayList<SolrInputDocument>();
+
+    
     int recordCount = 0;
     while (result.hasNext()) {
       recordCount++;
-
+      
       Map<String, Object> row = result.next();
 
       String subjectIri = (String) ((Node) row.get("subject")).getProperty(NodeProperties.IRI);
@@ -368,23 +375,19 @@ public class GolrLoader {
 
       Pair<String, String> pair = new Pair<String, String>(subjectIri, objectIri);
 
-      String existingResult = resultsSerializable.get(pair);
+      SolrInputDocument existingResult = resultsSerializable.get(pair);
       if (existingResult == null) {
         Set<Long> ignoredNodes = new HashSet<>();
         Writer stringWriter = new StringWriter();
         JsonGenerator stringGenerator = new JsonFactory().createGenerator(stringWriter);
-        ResultSerializer stringSerializer = factory.create(stringGenerator);
         boolean emitEvidence = true;
         TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
 
         stringGenerator.writeStartObject();
 
-        serializerRow(row, stringSerializer, tguEvidenceGraph, ignoredNodes, query);
+        existingResult = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
 
-        stringGenerator.writeEndObject();
-        stringGenerator.close();
-
-        resultsSerializable.put(pair, stringWriter.toString());
+        resultsSerializable.put(pair, existingResult);
 
         resultsGraph.put(pair, new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), emitEvidence, ignoredNodes));
       } else {
@@ -413,25 +416,17 @@ public class GolrLoader {
 
     }
 
-    for (Entry<Pair<String, String>, String> resultSerializable : resultsSerializable.entrySet()) {
-      generator.writeStartObject();
+    for (Entry<Pair<String, String>, SolrInputDocument> resultSerializable : resultsSerializable.entrySet()) {
 
       Pair<String, String> p = resultSerializable.getKey();
       EvidenceGraphInfo pairGraph = resultsGraph.get(p);
-
-      ObjectMapper mapper = new ObjectMapper();
-      Map<String, Object> existingJson = mapper.readValue(resultSerializable.getValue(), Map.class);
-
-
-      for (Entry<String, Object> entry : existingJson.entrySet()) {
-        serializer.serialize(entry.getKey(), entry.getValue());
-      }
+      SolrInputDocument solrDoc = resultSerializable.getValue();
 
       if (pairGraph != null) {
         com.tinkerpop.blueprints.Graph evidenceGraph =
             EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
         processor.addAssociations(evidenceGraph);
-        serializer.serialize(EVIDENCE_GRAPH,
+        solrDoc.addField(EVIDENCE_GRAPH,
             processor.getEvidenceGraph(evidenceGraph, metaSourceQuery));
 
         // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
@@ -439,56 +434,82 @@ public class GolrLoader {
         if (pairGraph.emitEvidence) {
           List<Closure> evidenceObjectClosure =
               processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
-          serializer.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure);
+          docUtil.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure, solrDoc);
           List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
-          serializer.writeQuint(EVIDENCE_FIELD, evidenceClosure);
+          docUtil.writeQuint(EVIDENCE_FIELD, evidenceClosure, solrDoc);
           List<Closure> sourceClosure = processor.getSource(evidenceGraph);
-          serializer.writeQuint(SOURCE_FIELD, sourceClosure);
-          serializer.writeArray(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
+          docUtil.writeQuint(SOURCE_FIELD, sourceClosure, solrDoc);
+          solrDoc.addField(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
         }
+        docList.add(solrDoc);
       } else {
+        docList.add(solrDoc);
         System.out.println("No evidence graph");
       }
-
-      generator.writeEndObject();
-      generator.writeRaw('\n');
+      if (docList.size() % BATCH_SIZE == 0) {
+        synchronized (solrLock) {
+          solrClient.add(docList);
+          solrClient.commit();
+          docList.clear();
+        }
+      }
     }
-    generator.writeEndArray();
-    generator.close();
+    if (docList.size() > 0) {
+      synchronized (solrLock) {
+        solrClient.add(docList);
+        solrClient.commit();
+        docList.clear();
+      }
+    }
 
     db.close();
 
     return recordCount;
   }
 
-  private long serializedFeatureQuery(GolrCypherQuery query, Result result, Writer writer,
-      Optional<String> metaSourceQuery) throws IOException, ExecutionException {
-    JsonGenerator generator = new JsonFactory().createGenerator(writer);
-    ResultSerializer serializer = factory.create(generator);
+  private long serializedFeatureQuery(GolrCypherQuery query, Result result, 
+      SolrClient solrClient, Object solrLock, Optional<String> metaSourceQuery)
+          throws IOException, ExecutionException, SolrServerException {
 
     int recordCount = 0;
+    Collection<SolrInputDocument> docList = new ArrayList<SolrInputDocument>();
 
-    generator.writeStartArray();
+
     while (result.hasNext()) {
-      generator.writeStartObject();
+      SolrInputDocument doc = new SolrInputDocument();
       Set<Long> ignoredNodes = new HashSet<>();
       TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
       recordCount++;
       Map<String, Object> row = result.next();
-      serializerRow(row, serializer, tguEvidenceGraph, ignoredNodes, query);
-      generator.writeEndObject();
-      generator.writeRaw('\n');
+      doc = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
+      docList.add(doc);
+      if (docList.size() % BATCH_SIZE == 0) {
+        synchronized (solrLock) {
+          solrClient.add(docList);
+          solrClient.commit();
+          docList.clear();
+        }
+      }
     }
-    generator.writeEndArray();
-    generator.close();
+    
+    if (docList.size() > 0) {
+      synchronized (solrLock) {
+        solrClient.add(docList);
+        solrClient.commit();
+        docList.clear();
+      }
+    }
+    
     return recordCount;
   }
 
-  private boolean serializerRow(Map<String, Object> row, ResultSerializer serializer,
+  private SolrInputDocument serializerRow(Map<String, Object> row,
       TinkerGraphUtil tguEvidenceGraph, Set<Long> ignoredNodes, GolrCypherQuery query)
       throws IOException, ExecutionException {
     boolean emitEvidence = true;
-
+    SolrInputDocument doc = new SolrInputDocument();
+    ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
+    SolrDocUtil docUtil = new SolrDocUtil(closureUtil);
 
     for (Entry<String, Object> entry : row.entrySet()) {
       String key = entry.getKey();
@@ -514,23 +535,23 @@ public class GolrLoader {
           Node node = (Node) value;
           Optional<Node> taxon = taxonCache.get(node);
           if (taxon.isPresent()) {
-            serializer.serialize(key + "_taxon", taxon.get());
+            docUtil.addNodes(key + "_taxon", singleton((Node) taxon.get()), doc);
           }
           if (node.hasLabel(GENE_LABEL) || node.hasLabel(VARIANT_LABEL)
               || node.hasLabel(GENOTYPE_LABEL)) {
             // Attempt to add gene and chromosome for monarch-initiative/monarch-app/#746
             if (node.hasLabel(GENE_LABEL)) {
-              serializer.serialize(key + "_gene", node);
+                docUtil.addNodes(key + "_gene", singleton((Node) node), doc);
             } else {
               Optional<Node> gene = geneCache.get(node);
               if (gene.isPresent()) {
-                serializer.serialize(key + "_gene", gene.get());
+                  docUtil.addNodes(key + "_gene", singleton((Node) gene.get()), doc);
               }
             }
 
             Optional<Node> chromosome = chromosomeCache.get(node);
             if (chromosome.isPresent()) {
-              serializer.serialize(key + "_chromosome", chromosome.get());
+                docUtil.addNodes(key + "_chromosome", singleton((Node) chromosome.get()), doc);
             }
           }
         }
@@ -544,35 +565,35 @@ public class GolrLoader {
               return curieUtil.getCurie(iri).orElse(iri);
             }
           });
-          serializer.writeArray("subject_ortholog_closure", new ArrayList<String>(orthologsId));
+          doc.addField("subject_ortholog_closure", new ArrayList<String>(orthologsId));
         }
 
         if ("feature".equals(key)) {
           // Add disease and phenotype for feature
-          serializer.serialize("disease", getDiseases((Node) value));
-          serializer.serialize("phenotype", getPhenotypes((Node) value));
+          docUtil.addNodes("disease", getDiseases((Node) value), doc);
+          docUtil.addNodes("phenotype", getPhenotypes((Node) value), doc);
         }
 
         if (query.getCollectedTypes().containsKey(key)) {
-          serializer.serialize(key, singleton((Node) value), query.getCollectedTypes().get(key));
+          docUtil.addNodes(key, singleton((Node) value), query.getCollectedTypes().get(key), doc);
         } else {
-          serializer.serialize(key, value);
+          docUtil.addNodes(key, singleton((Node) value), doc);
         }
       } else if (value instanceof Relationship) {
         String objectPropertyIri =
             GraphUtil.getProperty((Relationship) value, CommonProperties.IRI, String.class).get();
         Node objectProperty = graphDb.getNodeById(graph.getNode(objectPropertyIri).get());
-        serializer.serialize(key, objectProperty);
+        docUtil.addNodes(key, singleton((Node) objectProperty), doc);
       } else if (ClassUtils.isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
         // Serialize primitive types and Strings
         if ((key.equals("subject_category") || key.equals("object_category"))
             && value.equals("ontology")) {
           emitEvidence = false;
         }
-        serializer.serialize(key, value);
+        doc.addField(key, value);
       }
     }
-    return emitEvidence;
+    return doc;
   }
 
 }
