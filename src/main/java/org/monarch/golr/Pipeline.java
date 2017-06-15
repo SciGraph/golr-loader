@@ -145,9 +145,10 @@ public class Pipeline {
 
     for (final File fileEntry : filePath.listFiles()) {
       GolrCypherQuery query = mapper.readValue(fileEntry, GolrCypherQuery.class);
+      Optional<String> queryName = Optional.of(fileEntry.getName());
 
       final Future<Boolean> contentFuture = pool.submit(new GolrWorker(solrServer,
-            loader, query, SOLR_LOCK, fileEntry.getName()));
+            loader, query, SOLR_LOCK, queryName));
       futures.add(contentFuture);
     }
 

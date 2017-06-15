@@ -446,25 +446,28 @@ public class GolrLoader {
         docList.add(solrDoc);
         System.out.println("No evidence graph");
       }
-      if (docList.size() % BATCH_SIZE == 0) {
-        synchronized (solrLock) {
-          solrClient.add(docList);
-          solrClient.commit();
-          docList.clear();
-        }
+      if (docList.size() != 0 && docList.size() % BATCH_SIZE == 0) {
+        addAndCommitToSolr(solrClient, docList, solrLock);
+        docList.clear();
       }
     }
     if (docList.size() > 0) {
-      synchronized (solrLock) {
-        solrClient.add(docList);
-        solrClient.commit();
-        docList.clear();
-      }
+      addAndCommitToSolr(solrClient, docList, solrLock);
+      docList.clear();
     }
 
     db.close();
 
     return recordCount;
+  }
+  
+  private static void addAndCommitToSolr(SolrClient solrClient,
+      Collection<SolrInputDocument>docList, Object solrLock) throws SolrServerException, IOException {
+    synchronized (solrLock) {
+      solrClient.add(docList);
+      solrClient.commit();
+      docList.clear();
+    }
   }
 
   private long serializedFeatureQuery(GolrCypherQuery query, Result result, 
@@ -483,21 +486,15 @@ public class GolrLoader {
       Map<String, Object> row = result.next();
       doc = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
       docList.add(doc);
-      if (docList.size() % BATCH_SIZE == 0) {
-        synchronized (solrLock) {
-          solrClient.add(docList);
-          solrClient.commit();
-          docList.clear();
-        }
+      if (docList.size() != 0 && docList.size() % BATCH_SIZE == 0) {
+        addAndCommitToSolr(solrClient, docList, solrLock);
+        docList.clear();
       }
     }
     
     if (docList.size() > 0) {
-      synchronized (solrLock) {
-        solrClient.add(docList);
-        solrClient.commit();
-        docList.clear();
-      }
+      addAndCommitToSolr(solrClient, docList, solrLock);
+      docList.clear();
     }
     
     return recordCount;

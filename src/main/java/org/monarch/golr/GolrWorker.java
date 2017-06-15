@@ -45,10 +45,10 @@ public class GolrWorker implements Callable<Boolean> {
   GolrLoader loader;
   GolrCypherQuery query;
   Object solrLock;
-  String queryName;
+  Optional<String> queryName;
 
   public GolrWorker(Optional<String> solrServer, GolrLoader loader,
-      GolrCypherQuery query, Object solrLock, String queryName) {
+      GolrCypherQuery query, Object solrLock, Optional<String> queryName) {
     this.solrServer = solrServer;
     this.loader = loader;
     this.query = query;
@@ -60,9 +60,9 @@ public class GolrWorker implements Callable<Boolean> {
   @Override
   public Boolean call() throws Exception {
     SolrClient solrClient = new HttpSolrClient.Builder(solrServer.get()).build();
-    logger.info("Processing: " + queryName);
-    long recordCount = loader.process(query, solrClient, solrLock);
-    logger.info("Wrote " + recordCount + " documents to: " + solrServer);
+    logger.info("Processing: " + queryName.get());
+    long recordCount = loader.process(query, solrClient, solrLock, queryName);
+    logger.info("Wrote " + recordCount + " documents to: " + solrServer.get());
     logger.info(queryName + " finished");
     return true;
   }

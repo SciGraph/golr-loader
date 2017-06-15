@@ -1,6 +1,7 @@
 package org.monarch.golr;
 
 import static java.util.Collections.singleton;
+
 import io.scigraph.neo4j.DirectedRelationshipType;
 import io.scigraph.owlapi.OwlRelationships;
 
@@ -21,6 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.assistedinject.Assisted;
 
+/**
+ * Serializes Neo4J objects as JSON
+ *
+ * @deprecated use {@link #SolrDocUtil} instead.
+ */
+@Deprecated
 class ResultSerializer {
 
   static final String ID_SUFFIX = "";
