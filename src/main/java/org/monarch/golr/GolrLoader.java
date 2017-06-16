@@ -22,7 +22,6 @@ import javax.inject.Inject;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.common.SolrInputDocument;
 
 import org.apache.commons.lang3.ClassUtils;
@@ -47,7 +46,6 @@ import org.prefixcommons.CurieUtil;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
@@ -100,7 +98,7 @@ public class GolrLoader {
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
   
-  final static int BATCH_SIZE = 1000000;
+  final static int BATCH_SIZE = 100000;
 
   private Collection<RelationshipType> parts_of;
   private Collection<RelationshipType> subSequenceOfs;
@@ -500,7 +498,7 @@ public class GolrLoader {
     return recordCount;
   }
 
-  private SolrInputDocument serializerRow(Map<String, Object> row,
+  SolrInputDocument serializerRow(Map<String, Object> row,
       TinkerGraphUtil tguEvidenceGraph, Set<Long> ignoredNodes, GolrCypherQuery query)
       throws IOException, ExecutionException {
     boolean emitEvidence = true;

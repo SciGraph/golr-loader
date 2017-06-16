@@ -34,7 +34,7 @@ public class GolrWorker implements Callable<Boolean> {
     logger.info("Processing: " + queryName.get());
     long recordCount = loader.process(query, solrClient, solrLock, queryName);
     logger.info("Wrote " + recordCount + " documents to: " + solrServer.get());
-    logger.info(queryName + " finished");
+    logger.info(queryName.get() + " finished");
     return true;
   }
 }
