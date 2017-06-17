@@ -98,7 +98,7 @@ public class GolrLoader {
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
   
-  final static int BATCH_SIZE = 100000;
+  final static int BATCH_SIZE = 10000;
 
   private Collection<RelationshipType> parts_of;
   private Collection<RelationshipType> subSequenceOfs;
