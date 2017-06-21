@@ -14,7 +14,6 @@ import org.monarch.golr.beans.GolrCypherQuery;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
-@Ignore
 public class GolrLoaderTest extends GolrLoadSetup {
 
   GolrLoader processor;
@@ -27,6 +26,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
     processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil, new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil, curieUtil));
   }
 
+  @Ignore
   @Test
   public void primitiveTypesSerialize() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("RETURN 'foo' as string, true as boolean, 1 as int, 1 as long, 1 as float, 1 as double");
@@ -34,6 +34,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
     JSONAssert.assertEquals(getFixture("fixtures/primitives.json"), StringUtils.strip(writer.toString(), "[]"), JSONCompareMode.NON_EXTENSIBLE);
   }
 
+  @Ignore
   @Test
   public void defaultClosuresSerialize() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
@@ -41,6 +42,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
     JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
   }
 
+  @Ignore
   @Test
   public void relationshipClosureSerialization() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH ()-[relationship:CAUSES]->() RETURN *");
@@ -50,12 +52,23 @@ public class GolrLoaderTest extends GolrLoadSetup {
     JSONAssert.assertEquals(getFixture("fixtures/relationshipResult.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
   }
 
+  @Ignore
   @Test
   public void customClosuresSerialize() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
     query.getTypes().put("otherThing", new DirectedRelationshipType("partOf", "OUTGOING"));
     processor.process(query, writer);
     JSONAssert.assertEquals(getFixture("fixtures/customClosureTypeResult.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
+  }
+
+  @Test
+  public void customClosureQuery() throws Exception {
+    GolrCypherQuery query = new GolrCypherQuery("MATCH path=(subject:gene)-[relation:`http://purl.obolibrary.org/obo/RO_0002206`]->(object:`anatomical entity`) RETURN DISTINCT path, subject, object, 'gene' AS subject_category, 'anatomy' AS object_category, 'direct' AS qualifier");
+    query.setObjectClosure("rdfs:subClassOf|http://purl.obolibrary.org/obo/BFO_0000050");
+    processor.process(query, writer);
+    //System.out.println(writer.toString());
+    //System.out.println(getFixture("fixtures/customClosureQuery.json"));
+    JSONAssert.assertEquals(getFixture("fixtures/customClosureQuery.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
   }
 
 }

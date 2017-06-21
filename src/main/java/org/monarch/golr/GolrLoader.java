@@ -17,6 +17,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
@@ -95,6 +97,9 @@ public class GolrLoader {
   private static final Label GENE_LABEL = Label.label("gene");
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
+
+  private static final String ENTAILMENT_REGEX = "^\\[(\\w*):?([\\w:|\\.\\/#`]*)([!*\\.\\d]*)\\]$";
+  private static Pattern ENTAILMENT_PATTERN = Pattern.compile(ENTAILMENT_REGEX);
 
   private Collection<RelationshipType> parts_of;
   private Collection<RelationshipType> subSequenceOfs;
@@ -484,6 +489,24 @@ public class GolrLoader {
     return recordCount;
   }
 
+  private Set<DirectedRelationshipType> resolveRelationships(String key, String value) {
+    Set<DirectedRelationshipType> rels = new HashSet<>();
+    String cypherIn = String.format("[%s:%s]", key, value);
+    String cypherOut = cypherUtil.resolveRelationships(cypherIn);
+    Matcher m = ENTAILMENT_PATTERN.matcher(cypherOut);
+    while (m.find()) {
+      String types = m.group(2);
+      String[] cypherRels = types.split("\\|");
+      for (String cypherRel : cypherRels) {
+        String unquotedCypherRel = cypherRel.replaceAll("^`|`$","");
+        RelationshipType relType = RelationshipType.withName(unquotedCypherRel);
+        DirectedRelationshipType dirRelType = new DirectedRelationshipType(relType, Direction.OUTGOING);
+        rels.add(dirRelType);
+      }
+    }
+    return rels;
+  }
+
   private boolean serializerRow(Map<String, Object> row, ResultSerializer serializer,
       TinkerGraphUtil tguEvidenceGraph, Set<Long> ignoredNodes, GolrCypherQuery query)
       throws IOException, ExecutionException {
@@ -555,7 +578,29 @@ public class GolrLoader {
 
         if (query.getCollectedTypes().containsKey(key)) {
           serializer.serialize(key, singleton((Node) value), query.getCollectedTypes().get(key));
-        } else {
+        }
+        else if ("subject".equals(key) || "object".equals(key) || "relation".equals(key) || "evidence".equals(key)) {
+          Set<DirectedRelationshipType> closureTypes = new HashSet<>();
+          closureTypes.addAll(ResultSerializer.DEFAULT_CLOSURE_TYPES);
+          if ("subject".equals(key) && query.getSubjectClosure() != null) {
+            Set<DirectedRelationshipType> rels = resolveRelationships("subject_closure", query.getSubjectClosure());
+            closureTypes.addAll(rels);
+          }
+          if ("object".equals(key) && query.getObjectClosure() != null) {
+            Set<DirectedRelationshipType> rels = resolveRelationships("object_closure", query.getObjectClosure());
+            closureTypes.addAll(rels);
+          }
+          if ("relation".equals(key) && query.getRelationClosure() != null) {
+            Set<DirectedRelationshipType> rels = resolveRelationships("relation_closure", query.getRelationClosure());
+            closureTypes.addAll(rels);
+          }
+          if ("evidence".equals(key) && query.getEvidenceClosure() != null) {
+            Set<DirectedRelationshipType> rels = resolveRelationships("evidence_closure", query.getEvidenceClosure());
+            closureTypes.addAll(rels);
+          }
+          serializer.serialize(key, singleton((Node) value), closureTypes);
+        }
+        else {
           serializer.serialize(key, value);
         }
       } else if (value instanceof Relationship) {
