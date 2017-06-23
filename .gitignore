@@ -115,3 +115,6 @@ hs_err_pid*
 
 # Maven shade plugin pom.xml
 dependency-reduced-pom.xml
+
+.idea
+*.iml
