@@ -99,14 +99,11 @@ public class GolrLoader {
   private static final Label GENE_LABEL = Label.label("gene");
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
-<<<<<<< HEAD
   
   final static int BATCH_SIZE = 1000;
-=======
 
   private static final String ENTAILMENT_REGEX = "^\\[(\\w*):?([\\w:|\\.\\/#`]*)([!*\\.\\d]*)\\]$";
   private static Pattern ENTAILMENT_PATTERN = Pattern.compile(ENTAILMENT_REGEX);
->>>>>>> refs/remotes/origin/master
 
   private Collection<RelationshipType> parts_of;
   private Collection<RelationshipType> subSequenceOfs;
@@ -506,9 +503,6 @@ public class GolrLoader {
     return recordCount;
   }
 
-<<<<<<< HEAD
-  SolrInputDocument serializerRow(Map<String, Object> row,
-=======
   private Set<DirectedRelationshipType> resolveRelationships(String key, String value) {
     Set<DirectedRelationshipType> rels = new HashSet<>();
     String cypherIn = String.format("[%s:%s]", key, value);
@@ -527,8 +521,7 @@ public class GolrLoader {
     return rels;
   }
 
-  private boolean serializerRow(Map<String, Object> row, ResultSerializer serializer,
->>>>>>> refs/remotes/origin/master
+  SolrInputDocument serializerRow(Map<String, Object> row,
       TinkerGraphUtil tguEvidenceGraph, Set<Long> ignoredNodes, GolrCypherQuery query)
       throws IOException, ExecutionException {
     boolean emitEvidence = true;
@@ -600,12 +593,7 @@ public class GolrLoader {
         }
 
         if (query.getCollectedTypes().containsKey(key)) {
-<<<<<<< HEAD
           docUtil.addNodes(key, singleton((Node) value), query.getCollectedTypes().get(key), doc);
-        } else {
-          docUtil.addNodes(key, singleton((Node) value), doc);
-=======
-          serializer.serialize(key, singleton((Node) value), query.getCollectedTypes().get(key));
         }
         else if ("subject".equals(key) || "object".equals(key) || "relation".equals(key) || "evidence".equals(key)) {
           Set<DirectedRelationshipType> closureTypes = new HashSet<>();
@@ -629,8 +617,7 @@ public class GolrLoader {
           serializer.serialize(key, singleton((Node) value), closureTypes);
         }
         else {
-          serializer.serialize(key, value);
->>>>>>> refs/remotes/origin/master
+          docUtil.addNodes(key, singleton((Node) value), doc);
         }
       } else if (value instanceof Relationship) {
         String objectPropertyIri =
