@@ -64,6 +64,45 @@ public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
       Node ortholog = createNode("http://x.org/gene_ortholog");
       ortholog.addLabel(Label.label("gene"));
       gene.createRelationshipTo(ortholog, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_HOM0000017"));
+
+      Node foo = createNode("http://x.org/gene");
+      foo.addLabel(Label.label("gene"));
+
+      Node forebrain = createNode("http://purl.obolibrary.org/obo/UBERON_0001890");
+      forebrain.addLabel(Label.label("forebrain"));
+      forebrain.addLabel(Label.label("anatomical entity"));
+      Relationship foo2forebrain = foo.createRelationshipTo(forebrain, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002206"));
+      foo2forebrain.setProperty(CommonProperties.IRI, "http://purl.obolibrary.org/obo/RO_0002206");
+
+      Node brain = createNode("http://purl.obolibrary.org/obo/UBERON_0000955");
+      brain.addLabel(Label.label("brain"));
+      brain.addLabel(Label.label("anatomical entity"));
+      Relationship forebrain2brain = forebrain.createRelationshipTo(brain, RelationshipType.withName("http://purl.obolibrary.org/obo/BFO_0000050"));
+      forebrain2brain.setProperty(CommonProperties.IRI, "http://purl.obolibrary.org/obo/BFO_0000050");
+
+      Node neuralTube = createNode("http://purl.obolibrary.org/obo/UBERON_0001049");
+      neuralTube.addLabel(Label.label("neural tube"));
+      neuralTube.addLabel(Label.label("anatomical entity"));
+      Relationship brain2neuralTube = brain.createRelationshipTo(neuralTube, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002202"));
+      brain2neuralTube.setProperty(CommonProperties.IRI, "http://purl.obolibrary.org/obo/RO_0002202");
+
+      Node head = createNode("http://purl.obolibrary.org/obo/UBERON_0000033");
+      head.addLabel(Label.label("head"));
+      head.addLabel(Label.label("anatomical entity"));
+      Relationship brain2head = brain.createRelationshipTo(head, RelationshipType.withName("http://purl.obolibrary.org/obo/BFO_0000050"));
+      brain2head.setProperty(CommonProperties.IRI, "http://purl.obolibrary.org/obo/BFO_0000050");
+
+      Node bodyPart = createNode("http://x.org/body_part");
+      bodyPart.addLabel(Label.label("body part"));
+      bodyPart.addLabel(Label.label("anatomical entity"));
+      Relationship head2bodyPart = head.createRelationshipTo(bodyPart, OwlRelationships.RDFS_SUBCLASS_OF);
+      head2bodyPart.setProperty(CommonProperties.IRI, OwlRelationships.RDFS_SUBCLASS_OF.name());
+
+      Node anatomicalEntity = createNode("http://purl.obolibrary.org/obo/UBERON_0001062");
+      anatomicalEntity.addLabel(Label.label("anatomical entity"));
+      Relationship bodyPart2anatomicalEntity = bodyPart.createRelationshipTo(anatomicalEntity, OwlRelationships.RDFS_SUBCLASS_OF);
+      bodyPart2anatomicalEntity.setProperty(CommonProperties.IRI, OwlRelationships.RDFS_SUBCLASS_OF.name());
+
       tx.success();
     }
   }
