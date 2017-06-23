@@ -12,28 +12,27 @@ public class GolrWorker implements Callable<Boolean> {
 
   private static final Logger logger = Logger.getLogger(GolrWorker.class.getName());
 
-  Optional<String> solrServer;
+  String solrServer;
   GolrLoader loader;
   GolrCypherQuery query;
   Object solrLock;
   Optional<String> queryName;
 
-  public GolrWorker(Optional<String> solrServer, GolrLoader loader,
+  public GolrWorker(String solrServer, GolrLoader loader,
       GolrCypherQuery query, Object solrLock, Optional<String> queryName) {
     this.solrServer = solrServer;
     this.loader = loader;
     this.query = query;
     this.solrLock = solrLock;
     this.queryName = queryName;
-    Thread.currentThread().setName("Golr processor - " + query.toString());
+    Thread.currentThread().setName("Golr processor - " + queryName.get());
   }
   
   @Override
   public Boolean call() throws Exception {
-    SolrClient solrClient = new HttpSolrClient.Builder(solrServer.get()).build();
     logger.info("Processing: " + queryName.get());
-    long recordCount = loader.process(query, solrClient, solrLock, queryName);
-    logger.info("Wrote " + recordCount + " documents to: " + solrServer.get());
+    long recordCount = loader.process(query, solrServer, solrLock, queryName);
+    logger.info("Wrote " + recordCount + " documents to: " + solrServer);
     logger.info(queryName.get() + " finished");
     return true;
   }

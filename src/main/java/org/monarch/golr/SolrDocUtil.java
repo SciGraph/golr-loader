@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -66,10 +68,11 @@ public class SolrDocUtil {
   }
   
   void addClosure(String fieldName, List<String> closures, SolrInputDocument solrDoc) {
-    List<String> closureList = new ArrayList<String>();
+    Set<String> closureSet= new HashSet<String>();
     for (String closure : closures){
-      closureList.add(closure);
+      closureSet.add(closure);
     }
+    List<String> closureList = new ArrayList<String>(closureSet);
     solrDoc.addField(fieldName, closureList);
   }
   

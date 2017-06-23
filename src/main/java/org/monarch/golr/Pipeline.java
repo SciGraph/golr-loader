@@ -24,6 +24,9 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -60,52 +63,26 @@ public class Pipeline {
     option = Option.builder("q").longOpt("query").required().hasArg()
         .desc("The query configuration").build();
     options.addOption(option);
-    option = Option.builder("s").longOpt("solr-server").required(false).hasArg()
+    option = Option.builder("s").longOpt("solr-server").required().hasArg()
         .desc("An optional Solr server to update").build();
-    options.addOption(option);
-    option = Option.builder("o").longOpt("output").required(false).hasArg()
-        .desc("An optional output file for the JSON").build();
-    options.addOption(option);
-    option = Option.builder("onlyupload").longOpt("onlyupload").required(false)
-        .desc("To only upload the JSON. The -o  and -s arguments are mandatory with this option.")
-        .build();
-    options.addOption(option);
-    option = Option.builder("d").longOpt("delete-json").required(false)
-        .desc("Do not keep the generated json files.").build();
     options.addOption(option);
     return options;
   }
 
   public static void main(String[] args) throws JsonParseException, JsonMappingException,
       IOException, URISyntaxException, ExecutionException, InterruptedException,
-      KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+      KeyManagementException, NoSuchAlgorithmException, KeyStoreException, SolrServerException {
     Options options = getOptions();
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd;
     Neo4jConfiguration neo4jConfig = null;
     File filePath = null;
-    Optional<String> solrServer = Optional.empty();
-    Optional<String> outputFolder = Optional.empty();
-    boolean onlyUpload = false;
-    boolean deleteJson = false;
+    String solrServer = null;
     try {
       cmd = parser.parse(options, args);
-      if (cmd.hasOption("onlyupload")) {
-        onlyUpload = true;
-      }
-      if (cmd.hasOption("delete-json")) {
-        deleteJson = true;
-      }
-      if (cmd.hasOption("s")) {
-        solrServer = Optional.of(cmd.getOptionValue("s"));
-      }
-      if (cmd.hasOption("o")) {
-        outputFolder = Optional.of(cmd.getOptionValue("o"));
-      }
-      if (!onlyUpload) {
-        neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
-        filePath = new File(cmd.getOptionValue("q"));
-      }
+      solrServer = cmd.getOptionValue("s");
+      neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
+      filePath = new File(cmd.getOptionValue("q"));
     } catch (ParseException e) {
       e.printStackTrace();
       new HelpFormatter().printHelp("GolrLoad", options);
@@ -143,6 +120,12 @@ public class Pipeline {
     pool.awaitTermination(10, TimeUnit.DAYS);
     
     logger.info("Golr load completed");
+    
+    logger.info("Optimizing solr");
+    SolrClient solrClient = new HttpSolrClient.Builder(solrServer).build();
+    solrClient.optimize();
+    solrClient.close();
+    logger.info("Optimization complete");
 
   }
 }

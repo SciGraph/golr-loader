@@ -3,6 +3,9 @@ package org.monarch.golr;
 import static com.google.common.collect.Collections2.transform;
 import static java.util.Collections.singleton;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -17,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,6 +28,7 @@ import javax.inject.Inject;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.common.SolrInputDocument;
 
 import org.apache.commons.lang3.ClassUtils;
@@ -68,6 +73,8 @@ import io.scigraph.neo4j.GraphUtil;
 import io.scigraph.owlapi.OwlRelationships;
 
 public class GolrLoader {
+  
+  private static final Logger logger = Logger.getLogger(GolrLoader.class.getName());
 
   private static final String EVIDENCE_GRAPH = "evidence_graph";
   private static final String EVIDENCE_FIELD = "evidence";
@@ -100,7 +107,7 @@ public class GolrLoader {
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
   
-  final static int BATCH_SIZE = 500;
+  final static int BATCH_SIZE = 1000;
 
   private static final String ENTAILMENT_REGEX = "^\\[(\\w*):?([\\w:|\\.\\/#`]*)([!*\\.\\d]*)\\]$";
   private static Pattern ENTAILMENT_PATTERN = Pattern.compile(ENTAILMENT_REGEX);
@@ -324,12 +331,12 @@ public class GolrLoader {
       });
 
 
-  long process(GolrCypherQuery query, SolrClient solrClient, Object solrLock)
+  long process(GolrCypherQuery query, String solrServer, Object solrLock)
       throws IOException, ExecutionException, ClassNotFoundException, SolrServerException {
-    return process(query, solrClient, solrLock, Optional.empty());
+    return process(query, solrServer, solrLock, Optional.empty());
   }
 
-  long process(GolrCypherQuery query, SolrClient solrClient, Object solrLock, Optional<String> metaSourceQuery)
+  long process(GolrCypherQuery query, String solrServer, Object solrLock, Optional<String> metaSourceQuery)
       throws IOException, ExecutionException, ClassNotFoundException, SolrServerException {
     long recordCount = 0;
 
@@ -342,9 +349,9 @@ public class GolrLoader {
           result.columns().contains("subject") && result.columns().contains("object");
 
       if (isGolrQuery) {
-        recordCount = serializeGolrQuery(query, result, solrClient, solrLock, metaSourceQuery);
+        recordCount = serializeGolrQuery(query, result, solrServer, solrLock, metaSourceQuery);
       } else {
-        recordCount = serializedFeatureQuery(query, result, solrClient, solrLock, metaSourceQuery);
+        recordCount = serializedFeatureQuery(query, result, solrServer, solrLock, metaSourceQuery);
       }
 
       tx.success();
@@ -354,7 +361,7 @@ public class GolrLoader {
   }
 
   private long serializeGolrQuery(GolrCypherQuery query, Result result,
-      SolrClient solrClient, Object solrLock, Optional<String> metaSourceQuery)
+      String solrServer, Object solrLock, Optional<String> metaSourceQuery)
       throws IOException, ClassNotFoundException, ExecutionException, SolrServerException {
 
     DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose()
@@ -365,7 +372,6 @@ public class GolrLoader {
     ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
     SolrDocUtil docUtil = new SolrDocUtil(closureUtil);
     Collection<SolrInputDocument> docList = new ArrayList<SolrInputDocument>();
-
     
     int recordCount = 0;
     while (result.hasNext()) {
@@ -421,60 +427,70 @@ public class GolrLoader {
 
     for (Entry<Pair<String, String>, SolrInputDocument> resultSerializable : resultsSerializable.entrySet()) {
 
-      Pair<String, String> p = resultSerializable.getKey();
-      EvidenceGraphInfo pairGraph = resultsGraph.get(p);
+      Pair<String, String> pair = resultSerializable.getKey();
+      EvidenceGraphInfo pairGraph = resultsGraph.get(pair);
       SolrInputDocument solrDoc = resultSerializable.getValue();
 
       if (pairGraph != null) {
         com.tinkerpop.blueprints.Graph evidenceGraph =
             EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
         processor.addAssociations(evidenceGraph);
-        solrDoc.addField(EVIDENCE_GRAPH,
-            processor.getEvidenceGraph(evidenceGraph, metaSourceQuery));
-
-        // TODO: Hackish to remove evidence but the resulting JSON is blooming out of control
-        // Don't emit evidence for ontology sources
-        if (pairGraph.emitEvidence) {
+        String evidenceBlob = processor.getEvidenceGraph(evidenceGraph, metaSourceQuery);
+        if (!solrDoc.getFieldValue("subject_category").equals("ontology")
+              || !solrDoc.getFieldValue("object_category").equals("ontology")){
+          
+          //TODO add exclude evidence to configuration
+          solrDoc.addField(EVIDENCE_GRAPH, evidenceBlob);
+          
           List<Closure> evidenceObjectClosure =
               processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
           docUtil.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure, solrDoc);
+          
           List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
           docUtil.writeQuint(EVIDENCE_FIELD, evidenceClosure, solrDoc);
-          List<Closure> sourceClosure = processor.getSource(evidenceGraph);
-          docUtil.writeQuint(SOURCE_FIELD, sourceClosure, solrDoc);
-          solrDoc.addField(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
+          
         }
+        
+        List<Closure> sourceClosure = processor.getSource(evidenceGraph);
+        docUtil.writeQuint(SOURCE_FIELD, sourceClosure, solrDoc);
+        solrDoc.addField(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
         docList.add(solrDoc);
       } else {
         docList.add(solrDoc);
         System.out.println("No evidence graph");
       }
-      if (docList.size() != 0 && docList.size() % BATCH_SIZE == 0) {
-        addAndCommitToSolr(solrClient, docList, solrLock);
+      if (docList.size() % BATCH_SIZE == 0) {
+        addAndCommitToSolr(solrServer, docList, solrLock);
         docList.clear();
       }
     }
     if (docList.size() > 0) {
-      addAndCommitToSolr(solrClient, docList, solrLock);
+      addAndCommitToSolr(solrServer, docList, solrLock);
       docList.clear();
     }
 
     db.close();
-
     return recordCount;
   }
   
-  private static void addAndCommitToSolr(SolrClient solrClient,
+  private static void addAndCommitToSolr(String solrServer,
       Collection<SolrInputDocument>docList, Object solrLock) throws SolrServerException, IOException {
     synchronized (solrLock) {
-      solrClient.add(docList);
+      SolrClient solrClient = new HttpSolrClient.Builder(solrServer).build();
+      try {
+        solrClient.add(docList);
+      } catch (IOException|SolrServerException e) {
+        logger.warning("Caught: " + e);
+        logger.info("Retrying add");
+        solrClient.add(docList);
+      }
       solrClient.commit();
-      docList.clear();
+      solrClient.close();
     }
   }
 
   private long serializedFeatureQuery(GolrCypherQuery query, Result result, 
-      SolrClient solrClient, Object solrLock, Optional<String> metaSourceQuery)
+      String solrServer, Object solrLock, Optional<String> metaSourceQuery)
           throws IOException, ExecutionException, SolrServerException {
 
     int recordCount = 0;
@@ -490,13 +506,13 @@ public class GolrLoader {
       doc = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
       docList.add(doc);
       if (docList.size() != 0 && docList.size() % BATCH_SIZE == 0) {
-        addAndCommitToSolr(solrClient, docList, solrLock);
+        addAndCommitToSolr(solrServer, docList, solrLock);
         docList.clear();
       }
     }
     
     if (docList.size() > 0) {
-      addAndCommitToSolr(solrClient, docList, solrLock);
+      addAndCommitToSolr(solrServer, docList, solrLock);
       docList.clear();
     }
     

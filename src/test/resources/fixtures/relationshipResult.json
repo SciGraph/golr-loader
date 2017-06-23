@@ -1,5 +1,4 @@
-[
-  {
+{
     "relationship": ["X:causes"],
     "relationship_label": ["X:causes"],
     "relationship_closure": [
@@ -8,23 +7,5 @@
     "relationship_closure_label": [
       "X:causes", "X:causes_parent"
     ],
-    "relationship_closure_map": "{\"X:causes\":\"X:causes\",\"X:causes_parent\":\"X:causes_parent\"}",
-    "evidence_graph":"foo",
-    "evidence_object": [],
-    "evidence_object_label": [],
-    "evidence_object_closure": [],
-    "evidence_object_closure_label": [],
-    "evidence_object_closure_map": "{}",
-    "evidence":[],
-    "evidence_label":[],
-    "evidence_closure":[],
-    "evidence_closure_label":[],
-    "evidence_closure_map": "{}",
-    "source":[],
-    "source_label":[],
-    "source_closure":[],
-    "source_closure_label":[],
-    "source_closure_map": "{}",
-    "is_defined_by":[]
-  }
-]
+    "relationship_closure_map": "{\"X:causes_parent\":\"X:causes_parent\",\"X:causes\":\"X:causes\"}",
+}
