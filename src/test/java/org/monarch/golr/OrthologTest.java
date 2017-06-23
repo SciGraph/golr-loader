@@ -4,7 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -39,16 +41,12 @@ public class OrthologTest extends GolrLoadSetup {
       ExecutionException {
     GolrCypherQuery query = new GolrCypherQuery("MATCH (n:gene) RETURN n as subject, n as object");
     SolrInputDocument existingResult = new SolrInputDocument();
-    
-    try (Transaction tx = graphDb.beginTx()) {
+    TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
+    List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
 
-      Result result = cypherUtil.execute(query.getQuery());
-      Map<String, Object> row = result.next();
-      TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
-      existingResult = processor.serializerRow(row, tguEvidenceGraph, new HashSet<>(), query);
-      tx.success();
-      
-    }
+    results = TestUtils.getResultList(query);
+    existingResult = processor.serializerRow(results.get(0), tguEvidenceGraph, new HashSet<>(), query);
+
     assertThat(existingResult.toString(),
         StringContains
             .containsString("subject_ortholog_closure=[http://x.org/gene_ortholog]"));

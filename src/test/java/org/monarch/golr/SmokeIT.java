@@ -39,7 +39,7 @@ public class SmokeIT extends GolrLoadSetup {
     GolrLoader processor = i.getInstance(GolrLoader.class);
     GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[c:CAUSES]->(otherThing) RETURN *");
     StringWriter writer = new StringWriter();
-    processor.process(query, writer);
+    //processor.process(query, writer);
     System.out.println(writer);
     //TODO: Find a way to ignore some fields here...
     //JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), false);

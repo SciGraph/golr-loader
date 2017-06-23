@@ -100,7 +100,7 @@ public class GolrLoader {
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
   
-  final static int BATCH_SIZE = 1000;
+  final static int BATCH_SIZE = 500;
 
   private static final String ENTAILMENT_REGEX = "^\\[(\\w*):?([\\w:|\\.\\/#`]*)([!*\\.\\d]*)\\]$";
   private static Pattern ENTAILMENT_PATTERN = Pattern.compile(ENTAILMENT_REGEX);
@@ -597,7 +597,7 @@ public class GolrLoader {
         }
         else if ("subject".equals(key) || "object".equals(key) || "relation".equals(key) || "evidence".equals(key)) {
           Set<DirectedRelationshipType> closureTypes = new HashSet<>();
-          closureTypes.addAll(ResultSerializer.DEFAULT_CLOSURE_TYPES);
+          closureTypes.addAll(docUtil.DEFAULT_CLOSURE_TYPES);
           if ("subject".equals(key) && query.getSubjectClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("subject_closure", query.getSubjectClosure());
             closureTypes.addAll(rels);
@@ -614,7 +614,7 @@ public class GolrLoader {
             Set<DirectedRelationshipType> rels = resolveRelationships("evidence_closure", query.getEvidenceClosure());
             closureTypes.addAll(rels);
           }
-          serializer.serialize(key, singleton((Node) value), closureTypes);
+          docUtil.addNodes(key, singleton((Node) value), closureTypes, doc);
         }
         else {
           docUtil.addNodes(key, singleton((Node) value), doc);
