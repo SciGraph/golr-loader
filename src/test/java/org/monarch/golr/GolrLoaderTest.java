@@ -2,11 +2,20 @@ package org.monarch.golr;
 
 import io.scigraph.internal.CypherUtil;
 import io.scigraph.internal.GraphApi;
+import io.scigraph.internal.TinkerGraphUtil;
 import io.scigraph.neo4j.DirectedRelationshipType;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.StringWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -23,41 +32,62 @@ public class GolrLoaderTest extends GolrLoadSetup {
   public void setup() {
     EvidenceProcessorStub stub = new EvidenceProcessorStub(graphDb, new EvidenceAspectStub(), closureUtil, curieUtil);
     CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
-    processor = new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil, new ResultSerializerFactoryTestImpl(), stub, new GraphApi(graphDb, cypherUtil, curieUtil));
-  }
+    processor =
+        new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil, 
+            stub, new GraphApi(graphDb, cypherUtil, curieUtil));  }
 
-  @Ignore
   @Test
   public void primitiveTypesSerialize() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("RETURN 'foo' as string, true as boolean, 1 as int, 1 as long, 1 as float, 1 as double");
-    processor.process(query, writer);
-    JSONAssert.assertEquals(getFixture("fixtures/primitives.json"), StringUtils.strip(writer.toString(), "[]"), JSONCompareMode.NON_EXTENSIBLE);
+    
+    List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+    results = TestUtils.getResultList(query);
+    TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
+    SolrInputDocument solrDoc = processor.serializerRow(results.get(0), tguEvidenceGraph, new HashSet<>(), query);
+    Writer writer = TestUtils.convertSolrToJson(solrDoc);
+    
+    JSONAssert.assertEquals(getFixture("fixtures/primitives.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
   }
 
-  @Ignore
   @Test
   public void defaultClosuresSerialize() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
-    processor.process(query , writer);
+    
+    List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+    results = TestUtils.getResultList(query);
+    TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
+    SolrInputDocument solrDoc = processor.serializerRow(results.get(0), tguEvidenceGraph, new HashSet<>(), query);
+    Writer writer = TestUtils.convertSolrToJson(solrDoc);
+
     JSONAssert.assertEquals(getFixture("fixtures/simpleResult.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
+    
+    
   }
 
-  @Ignore
   @Test
   public void relationshipClosureSerialization() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH ()-[relationship:CAUSES]->() RETURN *");
-    processor.process(query, writer);
-    System.out.println(getFixture("fixtures/relationshipResult.json"));
-    System.out.println(writer.toString());
+    
+    List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+    results = TestUtils.getResultList(query);
+    TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
+    SolrInputDocument solrDoc = processor.serializerRow(results.get(0), tguEvidenceGraph, new HashSet<>(), query);
+    Writer writer = TestUtils.convertSolrToJson(solrDoc);
+    
     JSONAssert.assertEquals(getFixture("fixtures/relationshipResult.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
   }
 
-  @Ignore
   @Test
   public void customClosuresSerialize() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH (thing)-[:CAUSES]->(otherThing) RETURN *");
     query.getTypes().put("otherThing", new DirectedRelationshipType("partOf", "OUTGOING"));
-    processor.process(query, writer);
+    
+    List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+    results = TestUtils.getResultList(query);
+    TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
+    SolrInputDocument solrDoc = processor.serializerRow(results.get(0), tguEvidenceGraph, new HashSet<>(), query);
+    Writer writer = TestUtils.convertSolrToJson(solrDoc);
+    
     JSONAssert.assertEquals(getFixture("fixtures/customClosureTypeResult.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
   }
 
@@ -65,9 +95,12 @@ public class GolrLoaderTest extends GolrLoadSetup {
   public void customClosureQuery() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH path=(subject:gene)-[relation:`http://purl.obolibrary.org/obo/RO_0002206`]->(object:`anatomical entity`) RETURN DISTINCT path, subject, object, 'gene' AS subject_category, 'anatomy' AS object_category, 'direct' AS qualifier");
     query.setObjectClosure("rdfs:subClassOf|http://purl.obolibrary.org/obo/BFO_0000050");
-    processor.process(query, writer);
-    //System.out.println(writer.toString());
-    //System.out.println(getFixture("fixtures/customClosureQuery.json"));
+    List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+    results = TestUtils.getResultList(query);
+    TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
+    SolrInputDocument solrDoc = processor.serializerRow(results.get(0), tguEvidenceGraph, new HashSet<>(), query);
+    Writer writer = TestUtils.convertSolrToJson(solrDoc);
+    
     JSONAssert.assertEquals(getFixture("fixtures/customClosureQuery.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
   }
 

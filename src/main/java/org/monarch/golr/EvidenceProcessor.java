@@ -96,7 +96,7 @@ class EvidenceProcessor {
         continue;
       }
       Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
-      closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
+      closures.add(closureUtil.getClosure(node, SolrDocUtil.DEFAULT_CLOSURE_TYPES));
     }
     return closures;
   }
@@ -107,7 +107,7 @@ class EvidenceProcessor {
       if (hasEvidence.equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
         Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
-        closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
+        closures.add(closureUtil.getClosure(node, SolrDocUtil.DEFAULT_CLOSURE_TYPES));
       }
     }
     return closures;
@@ -119,7 +119,7 @@ class EvidenceProcessor {
       if (source.equals(edge.getLabel())) {
         Vertex vertex = edge.getVertex(Direction.IN);
         Node node = graphDb.getNodeById(Long.parseLong((String) vertex.getId()));
-        closures.add(closureUtil.getClosure(node, ResultSerializer.DEFAULT_CLOSURE_TYPES));
+        closures.add(closureUtil.getClosure(node, SolrDocUtil.DEFAULT_CLOSURE_TYPES));
       }
     }
     return closures;

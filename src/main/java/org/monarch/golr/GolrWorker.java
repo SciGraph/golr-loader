@@ -1,94 +1,39 @@
 package org.monarch.golr;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.net.URI;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.net.ssl.SSLContext;
-
-import org.apache.commons.io.FilenameUtils;
-import org.apache.http.client.fluent.Executor;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.entity.ContentType;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.TrustStrategy;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.monarch.golr.beans.GolrCypherQuery;
 
 public class GolrWorker implements Callable<Boolean> {
 
   private static final Logger logger = Logger.getLogger(GolrWorker.class.getName());
 
-  Optional<String> solrServer;
-  File outputFile;
+  String solrServer;
   GolrLoader loader;
   GolrCypherQuery query;
-  String solrJsonUrlSuffix;
   Object solrLock;
-  boolean deleteJson;
+  Optional<String> queryName;
 
-  public GolrWorker(Optional<String> solrServer, File outputFile, GolrLoader loader,
-      GolrCypherQuery query, String solrJsonUrlSuffix, Object solrLock, boolean deleteJson) {
+  public GolrWorker(String solrServer, GolrLoader loader,
+      GolrCypherQuery query, Object solrLock, Optional<String> queryName) {
     this.solrServer = solrServer;
-    this.outputFile = outputFile;
     this.loader = loader;
     this.query = query;
-    this.solrJsonUrlSuffix = solrJsonUrlSuffix;
     this.solrLock = solrLock;
-    this.deleteJson = deleteJson;
-    Thread.currentThread().setName("Golr processor - " + outputFile.getName());
+    this.queryName = queryName;
+    Thread.currentThread().setName("Golr processor - " + queryName.get());
   }
-
+  
   @Override
   public Boolean call() throws Exception {
-    logger.info("Writing JSON to: " + outputFile.getAbsolutePath());
-    FileWriter writer = new FileWriter(outputFile);
-    long recordCount = loader.process(query, writer,
-        Optional.of(FilenameUtils.removeExtension(outputFile.getName())));
-    logger.info("Wrote " + recordCount + " documents to: " + outputFile.getAbsolutePath());
-    logger.info(outputFile.getName() + " generated");
-    if (solrServer.isPresent()) {
-      synchronized (solrLock) {
-        logger.info("Posting JSON " + outputFile.getName() + " to " + solrServer.get());
-        try {
-          // ignore ssl certs because letsencrypt is not supported by Oracle yet
-          SSLContext sslContext =
-              new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
-                @Override
-                public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
-                    throws java.security.cert.CertificateException {
-                  return true;
-                }
-              }).build();
-
-          CloseableHttpClient httpClient =
-              HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                  .setSSLContext(sslContext).build();
-          Request request = Request.Post(new URI(
-              solrServer.get() + (solrServer.get().endsWith("/") ? "" : "/") + solrJsonUrlSuffix))
-              .bodyFile(outputFile, ContentType.APPLICATION_JSON);
-
-          Executor executor = Executor.newInstance(httpClient);
-          String result = executor.execute(request).returnContent().asString();
-
-          logger.info(result);
-          if (deleteJson) {
-            logger.info("Deleting JSON " + outputFile.getName());
-            outputFile.delete();
-          }
-        } catch (Exception e) {
-          logger.log(Level.SEVERE, "Failed to post JSON " + outputFile.getName(), e);
-          return false;
-        }
-      }
-      logger.info(outputFile.getName() + " done");
-    }
+    logger.info("Processing: " + queryName.get());
+    long recordCount = loader.process(query, solrServer, solrLock, queryName);
+    logger.info("Wrote " + recordCount + " documents to: " + solrServer);
+    logger.info(queryName.get() + " finished");
     return true;
   }
 }
