@@ -101,7 +101,7 @@ public class GolrLoader {
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
   
-  final static int BATCH_SIZE = 1000;
+  final static int BATCH_SIZE = 10000;
 
   private static final String ENTAILMENT_REGEX = "^\\[(\\w*):?([\\w:|\\.\\/#`]*)([!*\\.\\d]*)\\]$";
   private static Pattern ENTAILMENT_PATTERN = Pattern.compile(ENTAILMENT_REGEX);
