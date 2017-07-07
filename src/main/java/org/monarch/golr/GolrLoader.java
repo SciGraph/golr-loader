@@ -3,23 +3,16 @@ package org.monarch.golr;
 import static com.google.common.collect.Collections2.transform;
 import static java.util.Collections.singleton;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -53,8 +46,6 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Uniqueness;
 import org.prefixcommons.CurieUtil;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
@@ -368,13 +359,9 @@ public class GolrLoader {
 
     DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose()
         .transactionDisable().cacheSize(1000000).make();
-    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable;
-    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph;
+    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable = db.createHashMap("results").make();
+    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
     
-    
-
-    ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
-    SolrDocUtil docUtil = new SolrDocUtil(closureUtil);
     Collection<SolrInputDocument> docList = new ArrayList<SolrInputDocument>();
     String sortedField = null;
     boolean isDataSorted = false;
@@ -383,12 +370,6 @@ public class GolrLoader {
     if (query.getSortedField() != null) {
       sortedField = query.getSortedField();
       isDataSorted = true;
-      
-      resultsSerializable = new ConcurrentHashMap<Pair<String, String>, SolrInputDocument>();
-      resultsGraph = new ConcurrentHashMap<Pair<String, String>, EvidenceGraphInfo>();
-    } else {
-      resultsSerializable = db.createHashMap("results").make();
-      resultsGraph = db.createHashMap("graphs").make();
     }
     
     int recordCount = 0;
@@ -417,12 +398,8 @@ public class GolrLoader {
       SolrInputDocument existingResult = resultsSerializable.get(pair);
       if (existingResult == null) {
         Set<Long> ignoredNodes = new HashSet<>();
-        Writer stringWriter = new StringWriter();
-        JsonGenerator stringGenerator = new JsonFactory().createGenerator(stringWriter);
         boolean emitEvidence = true;
         TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
-
-        stringGenerator.writeStartObject();
         existingResult = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
         resultsSerializable.put(pair, existingResult);
         resultsGraph.put(pair, new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), emitEvidence, ignoredNodes));
@@ -452,9 +429,7 @@ public class GolrLoader {
       }
 
     }
-    // If results are unordered, iterate over resultsSerializable map
-    // add evidence, and add to solr server, this the legacy memory
-    // hungry approach
+
     addEvidenceToResults(resultsSerializable, resultsGraph, docList,
         solrServer, solrLock, metaSourceQuery);
     
