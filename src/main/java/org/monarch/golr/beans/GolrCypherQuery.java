@@ -20,6 +20,8 @@ public class GolrCypherQuery {
   private String relationClosure;
   @JsonProperty("evidence_closure")
   private String evidenceClosure;
+  @JsonProperty("ordered_by")
+  private String sortedField;
   private Multimap<String, DirectedRelationshipType> types = HashMultimap.create();
 
   public GolrCypherQuery() { }
@@ -28,6 +30,7 @@ public class GolrCypherQuery {
     this();
     this.query = query;
   }
+  //TODO do we need all these constructors?
   public GolrCypherQuery(String query, String subject_closure) {
     this(query);
     this.subjectClosure = subject_closure;
@@ -60,6 +63,9 @@ public class GolrCypherQuery {
   public String getEvidenceClosure() {
     return evidenceClosure;
   }
+  public String getSortedField() {
+    return sortedField;
+  }
 
   public void setSubjectClosure(String subjectClosure) {
     this.subjectClosure = subjectClosure;
@@ -81,6 +87,9 @@ public class GolrCypherQuery {
   public Map<String, Collection<DirectedRelationshipType>> getCollectedTypes() {
     return types.asMap();
   }
+  public void setSortedField(String sortedField) {
+    this.sortedField = sortedField;
+  }
 
   @Override
   public String toString() {
@@ -90,6 +99,7 @@ public class GolrCypherQuery {
             add("object_closure", objectClosure).
             add("relation_closure", relationClosure).
             add("evidence_closure", evidenceClosure).
+            add("ordered_by", sortedField).
             add("types", types).
             toString();
   }

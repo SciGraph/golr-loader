@@ -12,12 +12,14 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -366,22 +368,50 @@ public class GolrLoader {
 
     DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose()
         .transactionDisable().cacheSize(1000000).make();
-    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable = db.createHashMap("results").make();
-    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
+    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable;
+    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph;
+    
+    
 
     ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
     SolrDocUtil docUtil = new SolrDocUtil(closureUtil);
     Collection<SolrInputDocument> docList = new ArrayList<SolrInputDocument>();
+    String sortedField = null;
+    boolean isDataSorted = false;
+    String cachedFieldValue = "";
+    
+    if (query.getSortedField() != null) {
+      sortedField = query.getSortedField();
+      isDataSorted = true;
+      
+      resultsSerializable = new ConcurrentHashMap<Pair<String, String>, SolrInputDocument>();
+      resultsGraph = new ConcurrentHashMap<Pair<String, String>, EvidenceGraphInfo>();
+    } else {
+      resultsSerializable = db.createHashMap("results").make();
+      resultsGraph = db.createHashMap("graphs").make();
+    }
     
     int recordCount = 0;
     while (result.hasNext()) {
+      
       recordCount++;
       
       Map<String, Object> row = result.next();
 
       String subjectIri = (String) ((Node) row.get("subject")).getProperty(NodeProperties.IRI);
       String objectIri = (String) ((Node) row.get("object")).getProperty(NodeProperties.IRI);
-
+      
+      if (isDataSorted) {
+        String sortedFieldValue = (String) ((Node) row.get(sortedField)).getProperty(NodeProperties.IRI);
+        if (!sortedFieldValue.equals(cachedFieldValue)) {
+          addEvidenceToResults(resultsSerializable, resultsGraph, docList,
+              solrServer, solrLock, metaSourceQuery);
+          resultsSerializable.clear();
+          resultsGraph.clear();
+          cachedFieldValue = sortedFieldValue;
+        }
+      }
+      
       Pair<String, String> pair = new Pair<String, String>(subjectIri, objectIri);
 
       SolrInputDocument existingResult = resultsSerializable.get(pair);
@@ -393,12 +423,10 @@ public class GolrLoader {
         TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
 
         stringGenerator.writeStartObject();
-
         existingResult = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
-
         resultsSerializable.put(pair, existingResult);
-
         resultsGraph.put(pair, new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), emitEvidence, ignoredNodes));
+        
       } else {
         EvidenceGraphInfo pairGraph = resultsGraph.get(pair);
         TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(EvidenceGraphInfo.toGraph(pairGraph.graphBytes), curieUtil);
@@ -424,7 +452,27 @@ public class GolrLoader {
       }
 
     }
+    // If results are unordered, iterate over resultsSerializable map
+    // add evidence, and add to solr server, this the legacy memory
+    // hungry approach
+    addEvidenceToResults(resultsSerializable, resultsGraph, docList,
+        solrServer, solrLock, metaSourceQuery);
+    
+    if (docList.size() > 0) {
+      addAndCommitToSolr(solrServer, docList, solrLock);
+      docList.clear();
+    }
 
+    db.close();
+    return recordCount;
+  }
+  
+  private void addEvidenceToResults(
+    Map<Pair<String, String>, SolrInputDocument> resultsSerializable,
+    Map<Pair<String, String>, EvidenceGraphInfo> resultsGraph,
+    Collection<SolrInputDocument> docList, String solrServer, Object solrLock,
+    Optional<String> metaSourceQuery) throws SolrServerException, IOException, ClassNotFoundException {
+    
     for (Entry<Pair<String, String>, SolrInputDocument> resultSerializable : resultsSerializable.entrySet()) {
 
       Pair<String, String> pair = resultSerializable.getKey();
@@ -432,28 +480,7 @@ public class GolrLoader {
       SolrInputDocument solrDoc = resultSerializable.getValue();
 
       if (pairGraph != null) {
-        com.tinkerpop.blueprints.Graph evidenceGraph =
-            EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
-        processor.addAssociations(evidenceGraph);
-        String evidenceBlob = processor.getEvidenceGraph(evidenceGraph, metaSourceQuery);
-        if (!solrDoc.getFieldValue("subject_category").equals("ontology")
-              || !solrDoc.getFieldValue("object_category").equals("ontology")){
-          
-          //TODO add exclude evidence to configuration
-          solrDoc.addField(EVIDENCE_GRAPH, evidenceBlob);
-          
-          List<Closure> evidenceObjectClosure =
-              processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
-          docUtil.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure, solrDoc);
-          
-          List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
-          docUtil.writeQuint(EVIDENCE_FIELD, evidenceClosure, solrDoc);
-          
-        }
-        
-        List<Closure> sourceClosure = processor.getSource(evidenceGraph);
-        docUtil.writeQuint(SOURCE_FIELD, sourceClosure, solrDoc);
-        solrDoc.addField(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
+        addEvidenceToSolrDoc(solrDoc, pairGraph, metaSourceQuery);
         docList.add(solrDoc);
       } else {
         docList.add(solrDoc);
@@ -464,13 +491,37 @@ public class GolrLoader {
         docList.clear();
       }
     }
-    if (docList.size() > 0) {
-      addAndCommitToSolr(solrServer, docList, solrLock);
-      docList.clear();
+  }
+  
+  private void addEvidenceToSolrDoc(SolrInputDocument solrDoc, 
+      EvidenceGraphInfo pairGraph, Optional<String> metaSourceQuery)
+          throws IOException, ClassNotFoundException {
+    
+    ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
+    SolrDocUtil docUtil = new SolrDocUtil(closureUtil);
+    
+    com.tinkerpop.blueprints.Graph evidenceGraph =
+        EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
+    processor.addAssociations(evidenceGraph);
+    String evidenceBlob = processor.getEvidenceGraph(evidenceGraph, metaSourceQuery);
+    if (!solrDoc.getFieldValue("subject_category").equals("ontology")
+          || !solrDoc.getFieldValue("object_category").equals("ontology")){
+      
+      //TODO add exclude evidence to configuration
+      solrDoc.addField(EVIDENCE_GRAPH, evidenceBlob);
+      
+      List<Closure> evidenceObjectClosure =
+          processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
+      docUtil.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure, solrDoc);
+      
+      List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
+      docUtil.writeQuint(EVIDENCE_FIELD, evidenceClosure, solrDoc);
+      
     }
-
-    db.close();
-    return recordCount;
+    
+    List<Closure> sourceClosure = processor.getSource(evidenceGraph);
+    docUtil.writeQuint(SOURCE_FIELD, sourceClosure, solrDoc);
+    solrDoc.addField(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
   }
   
   private static void addAndCommitToSolr(String solrServer,
