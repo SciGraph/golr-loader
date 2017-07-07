@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -359,8 +360,8 @@ public class GolrLoader {
 
     DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose()
         .transactionDisable().cacheSize(1000000).make();
-    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable = db.createHashMap("results").make();
-    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
+    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable;
+    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph;
     
     Collection<SolrInputDocument> docList = new ArrayList<SolrInputDocument>();
     String sortedField = null;
@@ -370,6 +371,11 @@ public class GolrLoader {
     if (query.getSortedField() != null) {
       sortedField = query.getSortedField();
       isDataSorted = true;
+      resultsSerializable = new ConcurrentHashMap<Pair<String, String>, SolrInputDocument>();
+      resultsGraph = new ConcurrentHashMap<Pair<String, String>, EvidenceGraphInfo>();
+    } else {
+      resultsSerializable = db.createHashMap("results").make();
+      resultsGraph = db.createHashMap("graphs").make();
     }
     
     int recordCount = 0;
