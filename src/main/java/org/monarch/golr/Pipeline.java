@@ -101,7 +101,7 @@ public class Pipeline {
     GolrLoader loader = i.getInstance(GolrLoader.class);
 
     final ExecutorService pool =
-        Executors.newFixedThreadPool(25);
+        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
       List<Future<Boolean>> futures = new ArrayList<>();
 
     for (final File fileEntry : filePath.listFiles()) {
