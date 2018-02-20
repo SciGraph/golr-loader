@@ -19,14 +19,15 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.Direction;
 import org.prefixcommons.CurieUtil;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -76,14 +77,8 @@ public class SimpleLoader {
       RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162");
 
   // add leaf node or not
-  public void generate(Optional<String> outputFile) throws IOException {
+  public void generate(Writer writer) throws IOException {
 
-    Writer writer = null;
-    if (outputFile.isPresent()) {
-      writer = new FileWriter(new File(outputFile.get()));
-    } else {
-      writer = new StringWriter();
-    }
     JsonGenerator generator = new JsonFactory().createGenerator(writer);
 
     generator.writeStartArray();
@@ -101,6 +96,12 @@ public class SimpleLoader {
           String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
           generator.writeStringField("iri", iri);
           generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
+          // Get curie prefix
+          Optional<String> curie = curieUtil.getCurie(iri);
+          if (curie.isPresent()) {
+            String[] parts = curie.get().split(":");
+            generator.writeStringField("prefix", parts[0]);
+          }
           try{
           writeOptionalArray("label", generator,
               GraphUtil.getProperties(baseNode, NodeProperties.LABEL, String.class));
@@ -114,6 +115,10 @@ public class SimpleLoader {
               GraphUtil.getProperties(baseNode, Concept.DEFINITION, String.class));
           writeOptionalArray("synonym", generator,
               GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
+
+          // Number of edges
+          generator.writeNumberField("edges",
+                  getEdgeCount(baseNode.getRelationships()));
 
           // taxon
           Optional<Node> taxon = Optional.empty();
@@ -201,10 +206,6 @@ public class SimpleLoader {
     generator.flush();
 
     graphDb.shutdown();
-
-    if (!outputFile.isPresent()) {
-      System.out.println(writer.toString());
-    }
   }
 
   private boolean isInLabelSet(Iterable<Label> nodeLabels, Set<String> validLabels) {
@@ -238,5 +239,13 @@ public class SimpleLoader {
       generator.writeString(s);
     }
     generator.writeEndArray();
+  }
+
+  public int getEdgeCount(Iterable<Relationship> relationships) {
+    int size = 0;
+    for(Relationship value : relationships) {
+      size++;
+    }
+    return size;
   }
 }

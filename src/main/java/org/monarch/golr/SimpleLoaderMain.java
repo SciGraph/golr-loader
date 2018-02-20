@@ -1,7 +1,6 @@
 package org.monarch.golr;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.Optional;
 
 import org.apache.commons.cli.CommandLine;
@@ -53,10 +52,17 @@ public class SimpleLoaderMain {
     CommandLine cmd;
     Neo4jConfiguration neo4jConfig = null;
     Optional<String> outputFile = Optional.empty();
+    Writer writer = null;
+    boolean hasOutputFile = false;
+
     try {
       cmd = parser.parse(options, args);
       if (cmd.hasOption("o")) {
         outputFile = Optional.of(cmd.getOptionValue("o"));
+        writer = new FileWriter(new File(outputFile.get()));
+        hasOutputFile = true;
+      } else {
+        writer = new StringWriter();
       }
       neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
     } catch (ParseException e) {
@@ -69,7 +75,12 @@ public class SimpleLoaderMain {
     SimpleLoader loader = i.getInstance(SimpleLoader.class);
 
     Stopwatch sw = Stopwatch.createStarted();
-    loader.generate(outputFile);
+    loader.generate(writer);
+
+    if (!hasOutputFile) {
+      System.out.println(writer.toString());
+    }
+
     System.out.println("Completed in " + sw.stop());
 
   }

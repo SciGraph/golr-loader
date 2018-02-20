@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/SciGraph/golr-loader.svg?branch=master)](https://travis-ci.org/SciGraph/golr-loader)
+
 # golr-loader
 
 Convert [SciGraph](https://github.com/SciGraph/SciGraph) query results into JSON 
