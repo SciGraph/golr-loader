@@ -34,7 +34,8 @@ public class GolrLoaderTest extends GolrLoadSetup {
     CypherUtil cypherUtil = new CypherUtil(graphDb, curieUtil);
     processor =
         new GolrLoader(graphDb, graph, new CypherUtil(graphDb, curieUtil), curieUtil, 
-            stub, new GraphApi(graphDb, cypherUtil, curieUtil));  }
+            stub, new GraphApi(graphDb, cypherUtil, curieUtil));
+  }
 
   @Test
   public void primitiveTypesSerialize() throws Exception {

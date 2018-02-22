@@ -1,0 +1,32 @@
+[
+  {
+    "iri":"http://x.org/geneA",
+    "id":"X:geneA",
+    "prefix":"X",
+    "label":[
+      "SHH"
+    ],
+    "definition":[
+
+    ],
+    "synonym":[
+
+    ],
+    "edges":2,
+    "taxon":"X:taxa",
+    "taxon_label":"Homo sapiens",
+    "taxon_label_synonym":[
+
+    ],
+    "category":[
+      "gene"
+    ],
+    "equivalent_iri":[
+
+    ],
+    "equivalent_curie":[
+
+    ],
+    "leaf":true
+  }
+]
