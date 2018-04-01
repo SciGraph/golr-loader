@@ -49,7 +49,7 @@ public class SimpleLoader {
   private static final Logger logger = Logger.getLogger(SimpleLoader.class.getName());
   private final String cliqueLeaderString = "cliqueLeader";
   private final Label cliqueLeaderLabel = Label.label(cliqueLeaderString);
-  private final Set<String> labels = Sets.newHashSet("Phenotype", "disease", "gene");
+  private final Set<String> labels = Sets.newHashSet("Phenotype", "disease", "gene", "sequence feature");
 
   GraphDatabaseService graphDb;
   Graph graph;
