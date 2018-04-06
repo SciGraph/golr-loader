@@ -164,7 +164,7 @@ public class SimpleLoader {
 
           // categories
           writeOptionalArray("category", generator,
-              Lists.newArrayList(baseNode.getLabels()).stream());
+              Lists.newArrayList(baseNode.getLabels());
 
           // equivalences
           List<String> equivalences = new ArrayList<String>();
