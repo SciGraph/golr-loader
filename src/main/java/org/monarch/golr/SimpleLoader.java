@@ -90,8 +90,7 @@ public class SimpleLoader {
       while (cliqueLeaderNodes.hasNext()) {
         Node baseNode = cliqueLeaderNodes.next();
         // consider only nodes with a label property and in the category set
-        if (isInLabelSet(baseNode.getLabels(), labels)
-            && baseNode.hasProperty(NodeProperties.LABEL)) {
+        if (baseNode.hasProperty(NodeProperties.LABEL)) {
           generator.writeStartObject();
           String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
           generator.writeStringField("iri", iri);
@@ -164,7 +163,7 @@ public class SimpleLoader {
 
           // categories
           writeOptionalArray("category", generator,
-              Lists.newArrayList(baseNode.getLabels());
+              Lists.newArrayList(baseNode.getLabels()));
 
           // equivalences
           List<String> equivalences = new ArrayList<String>();
