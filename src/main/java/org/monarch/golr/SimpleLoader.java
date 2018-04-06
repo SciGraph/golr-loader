@@ -49,8 +49,7 @@ public class SimpleLoader {
   private static final Logger logger = Logger.getLogger(SimpleLoader.class.getName());
   private final String cliqueLeaderString = "cliqueLeader";
   private final Label cliqueLeaderLabel = Label.label(cliqueLeaderString);
-  private final Set<String> labels = Sets.newHashSet("Phenotype", "disease", "gene",
-                                                     "sequence feature", "genotype", "anatomical entity");
+  private final Set<String> labels = Sets.newHashSet("Node");
 
   GraphDatabaseService graphDb;
   Graph graph;
@@ -165,8 +164,7 @@ public class SimpleLoader {
 
           // categories
           writeOptionalArray("category", generator,
-              Lists.newArrayList(baseNode.getLabels()).stream()
-                  .filter(label -> labels.contains(label.name())).collect(Collectors.toList()));
+              Lists.newArrayList(baseNode.getLabels()).stream());
 
           // equivalences
           List<String> equivalences = new ArrayList<String>();
