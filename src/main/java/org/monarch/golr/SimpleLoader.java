@@ -69,7 +69,7 @@ public class SimpleLoader {
     this.cypherUtil = cypherUtil;
     this.curieUtil = curieUtil;
     this.api = api;
-    unwantedLabels = new HashSet<String>();
+    unwantedLabels = new HashSet<String>(labels);
     unwantedLabels.add(cliqueLeaderString);
   }
 
@@ -89,10 +89,13 @@ public class SimpleLoader {
       ResourceIterator<Node> cliqueLeaderNodes = graphDb.findNodes(cliqueLeaderLabel);
       while (cliqueLeaderNodes.hasNext()) {
         Node baseNode = cliqueLeaderNodes.next();
+        String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
+
         // consider only nodes with a label property and in the category set
-        if (baseNode.hasProperty(NodeProperties.LABEL)) {
+        if (baseNode.hasProperty(NodeProperties.LABEL)
+                && !iri.startsWith("_:")
+                && !iri.startsWith("https://monarchinitiative.org/.well-known/genid/")) {
           generator.writeStartObject();
-          String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
           generator.writeStringField("iri", iri);
           generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
           // Get curie prefix
