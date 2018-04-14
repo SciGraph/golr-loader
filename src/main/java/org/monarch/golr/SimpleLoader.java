@@ -47,17 +47,18 @@ import io.scigraph.owlapi.OwlRelationships;
 public class SimpleLoader {
 
   private static final Logger logger = Logger.getLogger(SimpleLoader.class.getName());
-  private final String cliqueLeaderString = "cliqueLeader";
-  private final Label cliqueLeaderLabel = Label.label(cliqueLeaderString);
-  private final Set<String> labels = Sets.newHashSet("Node");
+  private final Label cliqueLeaderLabel = Label.label("cliqueLeader");
+  private final Set<String> unwantedLabels = Sets.newHashSet("cliqueLeader",
+                                                             "Node",
+                                                             "Class",
+                                                             "NamedIndividual");
 
   GraphDatabaseService graphDb;
   Graph graph;
   CypherUtil cypherUtil;
   CurieUtil curieUtil;
   GraphApi api;
-  Set<String> unwantedLabels;
-  
+
 
   Set<String> tmp = new HashSet<String>();
 
@@ -69,8 +70,6 @@ public class SimpleLoader {
     this.cypherUtil = cypherUtil;
     this.curieUtil = curieUtil;
     this.api = api;
-    unwantedLabels = new HashSet<String>(labels);
-    unwantedLabels.add(cliqueLeaderString);
   }
 
   private static final RelationshipType inTaxon =
