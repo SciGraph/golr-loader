@@ -1,6 +1,9 @@
 package org.monarch.golr;
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.commons.cli.CommandLine;
@@ -16,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Stopwatch;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -42,6 +46,10 @@ public class SimpleLoaderMain {
         Option.builder("o").longOpt("output").required(false).hasArg()
             .desc("An optional output file for the JSON").build();
     options.addOption(option);
+    option =
+       Option.builder("m").longOpt("eq-map").required(false).hasArg()
+             .desc("An optional equivalent prefix file").build();
+    options.addOption(option);
     return options;
   }
 
@@ -53,6 +61,7 @@ public class SimpleLoaderMain {
     Neo4jConfiguration neo4jConfig = null;
     Optional<String> outputFile = Optional.empty();
     Writer writer = null;
+    Map<String, List<String>> eqCurieMap = new HashMap<>();
     boolean hasOutputFile = false;
 
     try {
@@ -63,6 +72,10 @@ public class SimpleLoaderMain {
         hasOutputFile = true;
       } else {
         writer = new StringWriter();
+      }
+      if (cmd.hasOption("m")) {
+        eqCurieMap = mapper.readValue(new File(cmd.getOptionValue("m")),
+                new TypeReference<Map<String, List<String>>>() {} );
       }
       neo4jConfig = mapper.readValue(new File(cmd.getOptionValue("g")), Neo4jConfiguration.class);
     } catch (ParseException e) {
@@ -75,7 +88,7 @@ public class SimpleLoaderMain {
     SimpleLoader loader = i.getInstance(SimpleLoader.class);
 
     Stopwatch sw = Stopwatch.createStarted();
-    loader.generate(writer);
+    loader.generate(writer, eqCurieMap);
 
     if (!hasOutputFile) {
       System.out.println(writer.toString());

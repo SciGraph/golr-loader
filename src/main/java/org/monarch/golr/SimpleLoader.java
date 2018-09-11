@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -59,12 +60,11 @@ public class SimpleLoader {
   CurieUtil curieUtil;
   GraphApi api;
 
-
   Set<String> tmp = new HashSet<String>();
 
   @Inject
   public SimpleLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil,
-      CurieUtil curieUtil, GraphApi api) throws IOException {
+                      CurieUtil curieUtil, GraphApi api) throws IOException {
     this.graphDb = graphDb;
     this.graph = graph;
     this.cypherUtil = cypherUtil;
@@ -76,7 +76,8 @@ public class SimpleLoader {
       RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162");
 
   // add leaf node or not
-  public void generate(Writer writer) throws IOException {
+  public void generate(Writer writer,
+                       Map<String, List<String>> eqCurieMap) throws IOException {
 
     JsonGenerator generator = new JsonFactory().createGenerator(writer);
 
@@ -178,13 +179,28 @@ public class SimpleLoader {
             }
           }
           writeOptionalArray("equivalent_iri", generator, equivalences);
-          writeOptionalArray("equivalent_curie", generator,
-              transform(equivalences, new Function<String, String>() {
-                @Override
-                public String apply(String iri) {
-                  return curieUtil.getCurie(iri).orElse(iri);
+
+          List<String> equivalentCuries = new ArrayList<>();
+          for (String equivalentIri : equivalences) {
+            // Get curie prefix
+            Optional<String> eqCurie = curieUtil.getCurie(equivalentIri);
+            if (eqCurie.isPresent()) {
+              equivalentCuries.add(eqCurie.get());
+              String[] parts = eqCurie.get().split(":");
+              String prefix = parts[0];
+              String reference = parts[1];
+              if (eqCurieMap.containsKey(prefix)) {
+                for (String eqPrefix : eqCurieMap.get(prefix)) {
+                  equivalentCuries.add(eqPrefix + ":" +  reference);
                 }
-              }));
+              }
+            } else {
+              equivalentCuries.add(equivalentIri);
+            }
+
+          }
+
+          writeOptionalArray("equivalent_curie", generator, equivalentCuries);
 
           // is leaf
           if (baseNode.hasRelationship(Direction.INCOMING, OwlRelationships.RDFS_SUBCLASS_OF)) {

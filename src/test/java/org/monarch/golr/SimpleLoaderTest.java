@@ -27,7 +27,7 @@ public class SimpleLoaderTest extends SimpleLoadSetup {
     @Test
     public void testJSONDocument() throws Exception {
         Writer writer = new StringWriter();
-        processor.generate(writer);
+        processor.generate(writer, eqCurieMap);
         JSONAssert.assertEquals(getFixture("fixtures/searchDoc.json"), writer.toString(), JSONCompareMode.NON_EXTENSIBLE);
     }
 }
