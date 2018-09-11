@@ -39,6 +39,7 @@ public class SimpleLoadSetup extends io.scigraph.util.GraphTestBase {
             Node gene = createNode("http://x.org/geneA");
             gene.setProperty(NodeProperties.LABEL, "SHH");
             gene.addLabel(Label.label("gene"));
+            gene.addLabel(Label.label("Node"));
             gene.addLabel(Label.label("cliqueLeader"));
             Node taxa = createNode("http://x.org/taxa");
             taxa.setProperty(NodeProperties.LABEL, "Homo sapiens");
@@ -47,6 +48,14 @@ public class SimpleLoadSetup extends io.scigraph.util.GraphTestBase {
             Node geneB = createNode("http://x.org/geneB");
             gene.createRelationshipTo(taxa, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162"));
             gene.createRelationshipTo(geneB, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002435"));
+
+            Node bnode1 = createNode("_:1234");
+            bnode1.setProperty(NodeProperties.LABEL, "some bnode");
+            bnode1.addLabel(Label.label("cliqueLeader"));
+
+            Node bnode2 = createNode("https://monarchinitiative.org/.well-known/genid/121002-41751VL");
+            bnode2.setProperty(NodeProperties.LABEL, "bnode variant");
+            bnode2.addLabel(Label.label("cliqueLeader"));
 
 
             tx.success();

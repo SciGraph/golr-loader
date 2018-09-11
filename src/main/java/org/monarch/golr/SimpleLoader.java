@@ -47,17 +47,18 @@ import io.scigraph.owlapi.OwlRelationships;
 public class SimpleLoader {
 
   private static final Logger logger = Logger.getLogger(SimpleLoader.class.getName());
-  private final String cliqueLeaderString = "cliqueLeader";
-  private final Label cliqueLeaderLabel = Label.label(cliqueLeaderString);
-  private final Set<String> labels = Sets.newHashSet("Phenotype", "disease", "gene");
+  private final Label cliqueLeaderLabel = Label.label("cliqueLeader");
+  private final Set<String> unwantedLabels = Sets.newHashSet("cliqueLeader",
+                                                             "Node",
+                                                             "Class",
+                                                             "NamedIndividual");
 
   GraphDatabaseService graphDb;
   Graph graph;
   CypherUtil cypherUtil;
   CurieUtil curieUtil;
   GraphApi api;
-  Set<String> unwantedLabels;
-  
+
 
   Set<String> tmp = new HashSet<String>();
 
@@ -69,8 +70,6 @@ public class SimpleLoader {
     this.cypherUtil = cypherUtil;
     this.curieUtil = curieUtil;
     this.api = api;
-    unwantedLabels = new HashSet<String>();
-    unwantedLabels.add(cliqueLeaderString);
   }
 
   private static final RelationshipType inTaxon =
@@ -89,11 +88,13 @@ public class SimpleLoader {
       ResourceIterator<Node> cliqueLeaderNodes = graphDb.findNodes(cliqueLeaderLabel);
       while (cliqueLeaderNodes.hasNext()) {
         Node baseNode = cliqueLeaderNodes.next();
+        String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
+
         // consider only nodes with a label property and in the category set
-        if (isInLabelSet(baseNode.getLabels(), labels)
-            && baseNode.hasProperty(NodeProperties.LABEL)) {
+        if (baseNode.hasProperty(NodeProperties.LABEL)
+                && !iri.startsWith("_:")
+                && !iri.startsWith("https://monarchinitiative.org/.well-known/genid/")) {
           generator.writeStartObject();
-          String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
           generator.writeStringField("iri", iri);
           generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
           // Get curie prefix
@@ -164,8 +165,7 @@ public class SimpleLoader {
 
           // categories
           writeOptionalArray("category", generator,
-              Lists.newArrayList(baseNode.getLabels()).stream()
-                  .filter(label -> labels.contains(label.name())).collect(Collectors.toList()));
+              Lists.newArrayList(baseNode.getLabels()));
 
           // equivalences
           List<String> equivalences = new ArrayList<String>();

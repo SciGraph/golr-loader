@@ -28,5 +28,35 @@
 
     ],
     "leaf":true
+  },
+  {
+    "iri":"http://x.org/taxa",
+    "id":"X:taxa",
+    "prefix":"X",
+    "label":[
+      "Homo sapiens"
+    ],
+    "definition":[
+
+    ],
+    "synonym":[
+
+    ],
+    "edges":1,
+    "taxon":"",
+    "taxon_label":"",
+    "taxon_label_synonym":[
+
+    ],
+    "category":[
+      "organism"
+    ],
+    "equivalent_iri":[
+
+    ],
+    "equivalent_curie":[
+
+    ],
+    "leaf":true
   }
 ]
