@@ -12,7 +12,7 @@
     "synonym":[
 
     ],
-    "edges":2,
+    "edges":3,
     "taxon":"X:taxa",
     "taxon_label":"Homo sapiens",
     "taxon_label_synonym":[
@@ -22,10 +22,12 @@
       "gene"
     ],
     "equivalent_iri":[
-
+      "http://x.org/eqGeneA"
     ],
     "equivalent_curie":[
-
+      "X:eqGeneA",
+      "Y:eqGeneA",
+      "Y:geneA"
     ],
     "leaf":true
   },
@@ -55,7 +57,7 @@
 
     ],
     "equivalent_curie":[
-
+      "Y:taxa"
     ],
     "leaf":true
   }
