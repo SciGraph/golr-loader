@@ -181,6 +181,17 @@ public class SimpleLoader {
           writeOptionalArray("equivalent_iri", generator, equivalences);
 
           List<String> equivalentCuries = new ArrayList<>();
+
+          if (curie.isPresent()) {
+            String[] parts = curie.get().split(":");
+            String prefix = parts[0];
+            String reference = parts[1];
+            if (eqCurieMap.containsKey(prefix)) {
+              for (String eqPrefix : eqCurieMap.get(prefix)) {
+                equivalentCuries.add(eqPrefix + ":" +  reference);
+              }
+            }
+          }
           for (String equivalentIri : equivalences) {
             // Get curie prefix
             Optional<String> eqCurie = curieUtil.getCurie(equivalentIri);
@@ -197,7 +208,6 @@ public class SimpleLoader {
             } else {
               equivalentCuries.add(equivalentIri);
             }
-
           }
 
           writeOptionalArray("equivalent_curie", generator, equivalentCuries);

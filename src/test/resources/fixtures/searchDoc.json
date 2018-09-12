@@ -26,7 +26,8 @@
     ],
     "equivalent_curie":[
       "X:eqGeneA",
-      "Y:eqGeneA"
+      "Y:eqGeneA",
+      "Y:geneA"
     ],
     "leaf":true
   },
@@ -56,7 +57,7 @@
 
     ],
     "equivalent_curie":[
-
+      "Y:taxa"
     ],
     "leaf":true
   }
