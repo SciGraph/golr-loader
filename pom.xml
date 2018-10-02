@@ -55,21 +55,21 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-kernel</artifactId>
-			<version>3.3.1</version>
+			<version>3.4.7</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-io</artifactId>
-			<version>3.3.1</version>
+			<version>3.4.7</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j.test</groupId>
 			<artifactId>neo4j-harness</artifactId>
-			<version>3.3.1</version>
+			<version>3.4.7</version>
 			<type>test-jar</type>
 			<scope>test</scope>
 			<exclusions>
