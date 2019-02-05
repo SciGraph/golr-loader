@@ -120,12 +120,12 @@ public class Pipeline {
     pool.awaitTermination(10, TimeUnit.DAYS);
     
     logger.info("Golr load completed");
-    
+    /*
     logger.info("Optimizing solr");
     SolrClient solrClient = new HttpSolrClient.Builder(solrServer).build();
     solrClient.optimize();
     solrClient.close();
     logger.info("Optimization complete");
-
+    */
   }
 }
