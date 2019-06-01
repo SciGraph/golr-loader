@@ -1,6 +1,5 @@
 [
   {
-    "iri":"http://x.org/geneA",
     "id":"X:geneA",
     "prefix":"X",
     "label":[
@@ -21,9 +20,6 @@
     "category":[
       "gene"
     ],
-    "equivalent_iri":[
-      "http://x.org/eqGeneA"
-    ],
     "equivalent_curie":[
       "X:eqGeneA",
       "Y:eqGeneA",
@@ -32,7 +28,6 @@
     "leaf":true
   },
   {
-    "iri":"http://x.org/taxa",
     "id":"X:taxa",
     "prefix":"X",
     "label":[
@@ -52,9 +47,6 @@
     ],
     "category":[
       "organism"
-    ],
-    "equivalent_iri":[
-
     ],
     "equivalent_curie":[
       "Y:taxa"
