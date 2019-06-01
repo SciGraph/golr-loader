@@ -96,7 +96,6 @@ public class SimpleLoader {
                 && !iri.startsWith("_:")
                 && !iri.startsWith("https://monarchinitiative.org/.well-known/genid/")) {
           generator.writeStartObject();
-          generator.writeStringField("iri", iri);
           generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
           // Get curie prefix
           Optional<String> curie = curieUtil.getCurie(iri);
@@ -178,7 +177,6 @@ public class SimpleLoader {
                   GraphUtil.getProperty(path.endNode(), NodeProperties.IRI, String.class).get());
             }
           }
-          writeOptionalArray("equivalent_iri", generator, equivalences);
 
           List<String> equivalentCuries = new ArrayList<>();
 
