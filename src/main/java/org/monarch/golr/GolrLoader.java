@@ -3,9 +3,6 @@ package org.monarch.golr;
 import static com.google.common.collect.Collections2.transform;
 import static java.util.Collections.singleton;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -18,7 +15,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -26,14 +22,11 @@ import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
-import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.common.SolrInputDocument;
 
 import org.apache.commons.lang3.ClassUtils;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 import org.monarch.golr.beans.Closure;
 import org.monarch.golr.beans.GolrCypherQuery;
 import org.neo4j.graphdb.Direction;
@@ -72,6 +65,20 @@ import io.scigraph.neo4j.Graph;
 import io.scigraph.neo4j.GraphUtil;
 import io.scigraph.owlapi.OwlRelationships;
 
+/** Loader for the golr solr core
+ *
+ * Schema: https://github.com/monarch-initiative/monarch-app/blob/master/conf/golr-views/oban-config.yaml
+ * Queries: https://github.com/monarch-initiative/monarch-cypher-queries/tree/master/src/main/cypher/golr-loader
+ *
+ * The loader iterates over the results of the queries, generates solr documents, and inserts them
+ * into the solr server passed to the process method
+ *
+ * Note that the queries must return a minimum of path, subject, and object ordered by
+ * subject and then object.  The loader aggregates subject-object pairs per query into a single
+ * solr document.  Note that the process for picking a relation is unclear see
+ * https://github.com/SciGraph/golr-loader/issues/35
+ *
+ */
 public class GolrLoader {
   
   private static final Logger logger = Logger.getLogger(GolrLoader.class.getName());
@@ -107,7 +114,7 @@ public class GolrLoader {
   private static final Label VARIANT_LABEL = Label.label("sequence feature");
   private static final Label GENOTYPE_LABEL = Label.label("genotype");
   
-  final static int BATCH_SIZE = 1000;
+  private final static int BATCH_SIZE = 10000;
 
   private static final String ENTAILMENT_REGEX = "^\\[(\\w*):?([\\w:|\\.\\/#`]*)([!*\\.\\d]*)\\]$";
   private static Pattern ENTAILMENT_PATTERN = Pattern.compile(ENTAILMENT_REGEX);
@@ -364,28 +371,69 @@ public class GolrLoader {
       String solrServer, Object solrLock, Optional<String> metaSourceQuery)
       throws IOException, ClassNotFoundException, ExecutionException, SolrServerException {
 
-    DB db = DBMaker.newTempFileDB().closeOnJvmShutdown().deleteFilesAfterClose()
-        .transactionDisable().cacheSize(1000000).make();
-    ConcurrentMap<Pair<String, String>, SolrInputDocument> resultsSerializable = db.createHashMap("results").make();
-    ConcurrentMap<Pair<String, String>, EvidenceGraphInfo> resultsGraph = db.createHashMap("graphs").make();
+    SolrInputDocument resultDoc = new SolrInputDocument();
+    EvidenceGraphInfo resultGraph = null;
+    Pair<String, String> lastPair = new Pair<>("", "");
 
     ClosureUtil closureUtil = new ClosureUtil(graphDb, curieUtil);
     SolrDocUtil docUtil = new SolrDocUtil(closureUtil);
-    Collection<SolrInputDocument> docList = new ArrayList<SolrInputDocument>();
+    Collection<SolrInputDocument> docList = new ArrayList<>();
     
     int recordCount = 0;
+    int pairCount = 0;
     while (result.hasNext()) {
-      recordCount++;
-      
+
       Map<String, Object> row = result.next();
 
       String subjectIri = (String) ((Node) row.get("subject")).getProperty(NodeProperties.IRI);
       String objectIri = (String) ((Node) row.get("object")).getProperty(NodeProperties.IRI);
 
-      Pair<String, String> pair = new Pair<String, String>(subjectIri, objectIri);
+      Pair<String, String> pair = new Pair<>(subjectIri, objectIri);
+      if (recordCount == 0) {
+        lastPair = new Pair<>(subjectIri, objectIri);
+      }
+      if (!pair.equals(lastPair)){
 
-      SolrInputDocument existingResult = resultsSerializable.get(pair);
-      if (existingResult == null) {
+        if (resultGraph != null) {
+          com.tinkerpop.blueprints.Graph evidenceGraph =
+                  EvidenceGraphInfo.toGraph(resultGraph.graphBytes);
+          processor.addAssociations(evidenceGraph);
+          String evidenceBlob = processor.getEvidenceGraph(evidenceGraph, metaSourceQuery);
+          if (!resultDoc.getFieldValue("subject_category").equals("ontology")
+                  || !resultDoc.getFieldValue("object_category").equals("ontology")){
+
+            //TODO add exclude evidence to configuration
+            resultDoc.addField(EVIDENCE_GRAPH, evidenceBlob);
+
+            List<Closure> evidenceObjectClosure =
+                    processor.getEvidenceObject(evidenceGraph, resultGraph.ignoredNodes);
+            docUtil.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure, resultDoc);
+
+            List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
+            docUtil.writeQuint(EVIDENCE_FIELD, evidenceClosure, resultDoc);
+
+          }
+
+          List<Closure> sourceClosure = processor.getSource(evidenceGraph);
+          docUtil.writeQuint(SOURCE_FIELD, sourceClosure, resultDoc);
+          resultDoc.addField(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
+          docList.add(resultDoc);
+        } else {
+          docList.add(resultDoc);
+          System.out.println("No evidence graph");
+        }
+        if (docList.size() % BATCH_SIZE == 0) {
+          addAndCommitToSolr(solrServer, docList, solrLock);
+          docList.clear();
+        }
+        // Reset
+        lastPair = pair;
+        resultDoc = new SolrInputDocument();
+        resultGraph = null;
+        pairCount = 0;
+      }
+
+      if (pairCount == 0) {
         Set<Long> ignoredNodes = new HashSet<>();
         Writer stringWriter = new StringWriter();
         JsonGenerator stringGenerator = new JsonFactory().createGenerator(stringWriter);
@@ -394,15 +442,13 @@ public class GolrLoader {
 
         stringGenerator.writeStartObject();
 
-        existingResult = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
+        resultDoc = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
 
-        resultsSerializable.put(pair, existingResult);
-
-        resultsGraph.put(pair, new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), emitEvidence, ignoredNodes));
+        resultGraph = new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), emitEvidence, ignoredNodes);
       } else {
-        EvidenceGraphInfo pairGraph = resultsGraph.get(pair);
-        TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(EvidenceGraphInfo.toGraph(pairGraph.graphBytes), curieUtil);
-        Set<Long> ignoredNodes = pairGraph.ignoredNodes;
+        pairCount++;
+        TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(EvidenceGraphInfo.toGraph(resultGraph.graphBytes), curieUtil);
+        Set<Long> ignoredNodes = resultGraph.ignoredNodes;
         for (Entry<String, Object> entry : row.entrySet()) {
           Object value = entry.getValue();
 
@@ -419,64 +465,27 @@ public class GolrLoader {
             ignoredNodes.add(((Node) value).getId());
           }
         }
-        resultsGraph.put(pair,
-            new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), pairGraph.emitEvidence, ignoredNodes));
+        resultGraph =
+            new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), resultGraph.emitEvidence, ignoredNodes);
       }
-
+      recordCount++;
     }
 
-    for (Entry<Pair<String, String>, SolrInputDocument> resultSerializable : resultsSerializable.entrySet()) {
-
-      Pair<String, String> pair = resultSerializable.getKey();
-      EvidenceGraphInfo pairGraph = resultsGraph.get(pair);
-      SolrInputDocument solrDoc = resultSerializable.getValue();
-
-      if (pairGraph != null) {
-        com.tinkerpop.blueprints.Graph evidenceGraph =
-            EvidenceGraphInfo.toGraph(pairGraph.graphBytes);
-        processor.addAssociations(evidenceGraph);
-        String evidenceBlob = processor.getEvidenceGraph(evidenceGraph, metaSourceQuery);
-        if (!solrDoc.getFieldValue("subject_category").equals("ontology")
-              || !solrDoc.getFieldValue("object_category").equals("ontology")){
-          
-          //TODO add exclude evidence to configuration
-          solrDoc.addField(EVIDENCE_GRAPH, evidenceBlob);
-          
-          List<Closure> evidenceObjectClosure =
-              processor.getEvidenceObject(evidenceGraph, pairGraph.ignoredNodes);
-          docUtil.writeQuint(EVIDENCE_OBJECT_FIELD, evidenceObjectClosure, solrDoc);
-          
-          List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
-          docUtil.writeQuint(EVIDENCE_FIELD, evidenceClosure, solrDoc);
-          
-        }
-        
-        List<Closure> sourceClosure = processor.getSource(evidenceGraph);
-        docUtil.writeQuint(SOURCE_FIELD, sourceClosure, solrDoc);
-        solrDoc.addField(DEFINED_BY, processor.getDefinedBys(evidenceGraph));
-        docList.add(solrDoc);
-      } else {
-        docList.add(solrDoc);
-        System.out.println("No evidence graph");
-      }
-      if (docList.size() % BATCH_SIZE == 0) {
-        addAndCommitToSolr(solrServer, docList, solrLock);
-        docList.clear();
-      }
-    }
     if (docList.size() > 0) {
       addAndCommitToSolr(solrServer, docList, solrLock);
       docList.clear();
     }
 
-    db.close();
     return recordCount;
   }
   
   private static void addAndCommitToSolr(String solrServer,
       Collection<SolrInputDocument>docList, Object solrLock) throws SolrServerException, IOException {
     synchronized (solrLock) {
-      SolrClient solrClient = new HttpSolrClient.Builder(solrServer).build();
+      HttpSolrClient solrClient = new HttpSolrClient.Builder(solrServer).build();
+      // Set the socket and connect timeouts the same as solr.jetty.http.idleTimeout
+      solrClient.setSoTimeout(200000);
+      solrClient.setConnectionTimeout(200000);
       try {
         solrClient.add(docList);
       } catch (IOException|SolrServerException e) {
