@@ -392,7 +392,7 @@ public class GolrLoader {
       if (recordCount == 0) {
         lastPair = new Pair<>(subjectIri, objectIri);
       }
-      if (!pair.equals(lastPair)){
+      if (!pair.equals(lastPair) || !result.hasNext()){
 
         if (resultGraph != null) {
           com.tinkerpop.blueprints.Graph evidenceGraph =
@@ -411,7 +411,6 @@ public class GolrLoader {
 
             List<Closure> evidenceClosure = processor.getEvidence(evidenceGraph);
             docUtil.writeQuint(EVIDENCE_FIELD, evidenceClosure, resultDoc);
-
           }
 
           List<Closure> sourceClosure = processor.getSource(evidenceGraph);
@@ -437,14 +436,11 @@ public class GolrLoader {
         Set<Long> ignoredNodes = new HashSet<>();
         Writer stringWriter = new StringWriter();
         JsonGenerator stringGenerator = new JsonFactory().createGenerator(stringWriter);
-        boolean emitEvidence = true;
         TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
 
         stringGenerator.writeStartObject();
-
         resultDoc = serializerRow(row, tguEvidenceGraph, ignoredNodes, query);
-
-        resultGraph = new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), emitEvidence, ignoredNodes);
+        resultGraph = new EvidenceGraphInfo(tguEvidenceGraph.getGraph(), true, ignoredNodes);
       } else {
         pairCount++;
         TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(EvidenceGraphInfo.toGraph(resultGraph.graphBytes), curieUtil);
