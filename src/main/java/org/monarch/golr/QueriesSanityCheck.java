@@ -35,7 +35,7 @@ import io.scigraph.internal.CypherUtil;
 public class QueriesSanityCheck {
 
   private final static ExecutorService timeoutExecutorService =
-      Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() / 2);
+      Executors.newFixedThreadPool(5);
   private final static int timeout = 5; // in hours
 
   public static void main(String[] args)

@@ -49,6 +49,9 @@ public class Pipeline {
 
   private static ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
+  // Or alternatively Runtime.getRuntime().availableProcessors()
+  private static final int N_THREADS = 7;
+
   private static final Object SOLR_LOCK = new Object();
 
   static {
@@ -64,7 +67,7 @@ public class Pipeline {
         .desc("The query configuration").build();
     options.addOption(option);
     option = Option.builder("s").longOpt("solr-server").required().hasArg()
-        .desc("An optional Solr server to update").build();
+        .desc("The Solr server to update").build();
     options.addOption(option);
     return options;
   }
@@ -100,11 +103,21 @@ public class Pipeline {
 
     GolrLoader loader = i.getInstance(GolrLoader.class);
 
-    final ExecutorService pool =
-        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-      List<Future<Boolean>> futures = new ArrayList<>();
+    ArrayList<File> files = new ArrayList<>();
 
-    for (final File fileEntry : filePath.listFiles()) {
+    // Put *literature* queries in front, the rest append
+    for (File fileEntry : filePath.listFiles()) {
+      if (fileEntry.getName().contains("literature")) {
+        files.add(0, fileEntry);
+      } else {
+        files.add(fileEntry);
+      }
+    }
+
+    final ExecutorService pool = Executors.newFixedThreadPool(N_THREADS);
+    List<Future<Boolean>> futures = new ArrayList<>();
+
+    for (final File fileEntry : files) {
       GolrCypherQuery query = mapper.readValue(fileEntry, GolrCypherQuery.class);
       Optional<String> queryName = Optional.of(fileEntry.getName());
 
@@ -121,6 +134,7 @@ public class Pipeline {
     
     logger.info("Golr load completed");
     /*
+    We can do this with curl
     logger.info("Optimizing solr");
     SolrClient solrClient = new HttpSolrClient.Builder(solrServer).build();
     solrClient.optimize();
