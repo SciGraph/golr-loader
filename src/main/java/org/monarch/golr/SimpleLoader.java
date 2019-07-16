@@ -1,11 +1,6 @@
 package org.monarch.golr;
 
-import static com.google.common.collect.Lists.transform;
-
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,7 +11,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Map;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -33,7 +27,6 @@ import org.prefixcommons.CurieUtil;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -86,6 +79,7 @@ public class SimpleLoader {
     try (Transaction tx = graphDb.beginTx()) {
 
       // consider only cliqueLeaders
+      // https://github.com/SciGraph/golr-loader/issues/41
       ResourceIterator<Node> cliqueLeaderNodes = graphDb.findNodes(cliqueLeaderLabel);
       while (cliqueLeaderNodes.hasNext()) {
         Node baseNode = cliqueLeaderNodes.next();
@@ -157,7 +151,7 @@ public class SimpleLoader {
             writeOptionalArray("taxon_label_synonym", generator,
                 (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
           } else {
-            // TODO once ttl data are fixed, throw an error or warning when no taxons are found
+            // https://github.com/monarch-initiative/dipper/issues/415
             generator.writeStringField("taxon", "");
             generator.writeStringField("taxon_label", "");
             writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
@@ -203,8 +197,6 @@ public class SimpleLoader {
                   equivalentCuries.add(eqPrefix + ":" +  reference);
                 }
               }
-            } else {
-              equivalentCuries.add(equivalentIri);
             }
           }
 
