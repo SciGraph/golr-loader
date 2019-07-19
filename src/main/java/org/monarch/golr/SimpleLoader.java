@@ -38,7 +38,7 @@ import io.scigraph.neo4j.Graph;
 import io.scigraph.neo4j.GraphUtil;
 import io.scigraph.owlapi.OwlRelationships;
 
-public class SimpleLoader {
+class SimpleLoader {
 
   private static final Logger logger = Logger.getLogger(SimpleLoader.class.getName());
   private final Label cliqueLeaderLabel = Label.label("cliqueLeader");
@@ -53,7 +53,7 @@ public class SimpleLoader {
   CurieUtil curieUtil;
   GraphApi api;
 
-  Set<String> tmp = new HashSet<String>();
+  Set<String> tmp = new HashSet<>();
 
   @Inject
   public SimpleLoader(GraphDatabaseService graphDb, Graph graph, CypherUtil cypherUtil,
@@ -84,136 +84,138 @@ public class SimpleLoader {
       while (cliqueLeaderNodes.hasNext()) {
         Node baseNode = cliqueLeaderNodes.next();
         String iri = GraphUtil.getProperty(baseNode, NodeProperties.IRI, String.class).get();
+        Optional<String> curie = curieUtil.getCurie(iri);
 
-        // consider only nodes with a label property and in the category set
-        if (baseNode.hasProperty(NodeProperties.LABEL)
-                && !iri.startsWith("_:")
-                && !iri.startsWith("https://monarchinitiative.org/.well-known/genid/")) {
-          generator.writeStartObject();
-          generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
-          // Get curie prefix
-          Optional<String> curie = curieUtil.getCurie(iri);
-          if (curie.isPresent()) {
-            String[] parts = curie.get().split(":");
-            generator.writeStringField("prefix", parts[0]);
-          }
-          try{
-          writeOptionalArray("label", generator,
-              GraphUtil.getProperties(baseNode, NodeProperties.LABEL, String.class));
-          } catch(Exception e) {
-            logger.severe(iri);
-            logger.severe(baseNode.getLabels().toString());
-            logger.severe(GraphUtil.getProperties(baseNode, NodeProperties.LABEL, Double.class).toString());
-            throw e;
-          }
-          writeOptionalArray("definition", generator,
-              GraphUtil.getProperties(baseNode, Concept.DEFINITION, String.class));
-          writeOptionalArray("synonym", generator,
-              GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
-
-          // Number of edges
-          generator.writeNumberField("edges",
-                  getEdgeCount(baseNode.getRelationships()));
-
-          // taxon
-          Optional<Node> taxon = Optional.empty();
-          for (Path path : graphDb.traversalDescription().depthFirst()
-              .relationships(inTaxon, Direction.OUTGOING).traverse(baseNode)) {
-            if (path.length() > 0) {
-              taxon = Optional.of(path.endNode());
-              break;
-            }
-          }
-
-          if (taxon.isPresent()) {
-            String taxonIri =
-                GraphUtil.getProperty(taxon.get(), NodeProperties.IRI, String.class).get();
-            generator.writeStringField("taxon", curieUtil.getCurie(taxonIri).orElse(taxonIri));
-
-            Collection<String> lbs =
-                GraphUtil.getProperties(taxon.get(), NodeProperties.LABEL, String.class);
-            String taxonLabel = "";
-            if (lbs.size() >= 1) {
-              taxonLabel = lbs.iterator().next();
-            }
-            // TODO wait for a fix on the ttl
-            if (lbs.size() > 1 && !tmp.contains(taxon.get().getProperty("iri").toString())) {
-              tmp.add(taxon.get().getProperty("iri").toString());
-              System.out.println("Multiple taxon labels");
-              System.out.println(taxon.get().getProperty("iri").toString());
-              Iterator<String> it = lbs.iterator();
-              while (it.hasNext()) {
-                System.out.println(it.next());
-              }
-            }
-
-            generator.writeStringField("taxon_label", taxonLabel);
-            writeOptionalArray("taxon_label_synonym", generator,
-                (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
-          } else {
-            // https://github.com/monarch-initiative/dipper/issues/415
-            generator.writeStringField("taxon", "");
-            generator.writeStringField("taxon_label", "");
-            writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
-          }
-
-          // categories
-          writeOptionalArray("category", generator,
-              Lists.newArrayList(baseNode.getLabels()));
-
-          // equivalences
-          List<String> equivalences = new ArrayList<String>();
-          for (Path path : graphDb.traversalDescription().breadthFirst()
-              .relationships(OwlRelationships.OWL_SAME_AS)
-              .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS).traverse(baseNode)) {
-            if (path.length() > 0) {
-              equivalences.add(
-                  GraphUtil.getProperty(path.endNode(), NodeProperties.IRI, String.class).get());
-            }
-          }
-
-          List<String> equivalentCuries = new ArrayList<>();
-
-          if (curie.isPresent()) {
-            String[] parts = curie.get().split(":");
-            String prefix = parts[0];
-            String reference = parts[1];
-            if (eqCurieMap.containsKey(prefix)) {
-              for (String eqPrefix : eqCurieMap.get(prefix)) {
-                equivalentCuries.add(eqPrefix + ":" +  reference);
-              }
-            }
-          }
-          for (String equivalentIri : equivalences) {
-            // Get curie prefix
-            Optional<String> eqCurie = curieUtil.getCurie(equivalentIri);
-            if (eqCurie.isPresent()) {
-              equivalentCuries.add(eqCurie.get());
-              String[] parts = eqCurie.get().split(":");
-              String prefix = parts[0];
-              String reference = parts[1];
-              if (eqCurieMap.containsKey(prefix)) {
-                for (String eqPrefix : eqCurieMap.get(prefix)) {
-                  equivalentCuries.add(eqPrefix + ":" +  reference);
-                }
-              }
-            }
-          }
-
-          writeOptionalArray("equivalent_curie", generator, equivalentCuries);
-
-          // is leaf
-          if (baseNode.hasRelationship(Direction.INCOMING, OwlRelationships.RDFS_SUBCLASS_OF)) {
-            generator.writeBooleanField("leaf", false);
-          } else {
-            generator.writeBooleanField("leaf", true);
-          }
-
-          // end of object
-          generator.writeEndObject();
-          generator.writeRaw('\n');
+        // Require nodes to have a label, and filter out blank nodes
+        if (!baseNode.hasProperty(NodeProperties.LABEL)
+                || iri.startsWith("_:")
+                || iri.startsWith("https://monarchinitiative.org/.well-known/genid/")) {
+          continue;
         }
 
+        if (!curie.isPresent()) {
+          logger.info("Cannot resolve IRI to curie");
+          logger.info(iri);
+          continue;
+        }
+
+        generator.writeStartObject();
+        generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
+        String[] curieParts = curie.get().split(":");
+        String prefix = curieParts[0];
+        String reference = curieParts[1];
+        generator.writeStringField("prefix", prefix);
+
+        try{
+          writeOptionalArray("label", generator,
+                  GraphUtil.getProperties(baseNode, NodeProperties.LABEL, String.class));
+        } catch(Exception e) {
+          logger.severe(iri);
+          logger.severe(baseNode.getLabels().toString());
+          logger.severe(GraphUtil.getProperties(baseNode, NodeProperties.LABEL, Double.class).toString());
+          throw e;
+        }
+        writeOptionalArray("definition", generator,
+                GraphUtil.getProperties(baseNode, Concept.DEFINITION, String.class));
+        writeOptionalArray("synonym", generator,
+                GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
+
+        // Number of edges
+        generator.writeNumberField("edges",
+                getEdgeCount(baseNode.getRelationships()));
+
+        // taxon
+        Optional<Node> taxon = Optional.empty();
+        for (Path path : graphDb.traversalDescription().depthFirst()
+                .relationships(inTaxon, Direction.OUTGOING).traverse(baseNode)) {
+          if (path.length() > 0) {
+            taxon = Optional.of(path.endNode());
+            break;
+          }
+        }
+
+        if (taxon.isPresent()) {
+          String taxonIri =
+                  GraphUtil.getProperty(taxon.get(), NodeProperties.IRI, String.class).get();
+          generator.writeStringField("taxon", curieUtil.getCurie(taxonIri).orElse(taxonIri));
+
+          Collection<String> lbs =
+                  GraphUtil.getProperties(taxon.get(), NodeProperties.LABEL, String.class);
+          String taxonLabel = "";
+          if (lbs.size() >= 1) {
+            taxonLabel = lbs.iterator().next();
+          }
+          // https://github.com/monarch-initiative/dipper/issues/415
+          if (lbs.size() > 1 && !tmp.contains(taxon.get().getProperty("iri").toString())) {
+            tmp.add(taxon.get().getProperty("iri").toString());
+            System.out.println("Multiple taxon labels");
+            System.out.println(taxon.get().getProperty("iri").toString());
+            Iterator<String> it = lbs.iterator();
+            while (it.hasNext()) {
+              System.out.println(it.next());
+            }
+          }
+
+          generator.writeStringField("taxon_label", taxonLabel);
+          writeOptionalArray("taxon_label_synonym", generator,
+                  (GraphUtil.getProperties(taxon.get(), Concept.SYNONYM, String.class)));
+        } else {
+          // https://github.com/monarch-initiative/dipper/issues/415
+          generator.writeStringField("taxon", "");
+          generator.writeStringField("taxon_label", "");
+          writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
+        }
+
+        // categories
+        writeOptionalArray("category", generator,
+                Lists.newArrayList(baseNode.getLabels()));
+
+        // equivalences
+        List<String> equivalences = new ArrayList<>();
+        for (Path path : graphDb.traversalDescription().breadthFirst()
+                .relationships(OwlRelationships.OWL_SAME_AS)
+                .relationships(OwlRelationships.OWL_EQUIVALENT_CLASS).traverse(baseNode)) {
+          if (path.length() > 0) {
+            equivalences.add(
+                    GraphUtil.getProperty(path.endNode(), NodeProperties.IRI, String.class).get());
+          }
+        }
+
+        List<String> equivalentCuries = new ArrayList<>();
+        if (eqCurieMap.containsKey(prefix)) {
+          for (String eqPrefix : eqCurieMap.get(prefix)) {
+            equivalentCuries.add(eqPrefix + ":" +  reference);
+          }
+        }
+
+        for (String equivalentIri : equivalences) {
+          // Get curie prefix
+          Optional<String> eqCurie = curieUtil.getCurie(equivalentIri);
+          if (eqCurie.isPresent()) {
+            equivalentCuries.add(eqCurie.get());
+            String[] eqParts = eqCurie.get().split(":");
+            String eqPrefix = eqParts[0];
+            String eqReference = eqParts[1];
+            if (eqCurieMap.containsKey(eqPrefix)) {
+              for (String prefx : eqCurieMap.get(eqPrefix)) {
+                equivalentCuries.add(prefx + ":" +  eqReference);
+              }
+            }
+          }
+        }
+
+        writeOptionalArray("equivalent_curie", generator, equivalentCuries);
+
+        // is leaf
+        if (baseNode.hasRelationship(Direction.INCOMING, OwlRelationships.RDFS_SUBCLASS_OF)) {
+          generator.writeBooleanField("leaf", false);
+        } else {
+          generator.writeBooleanField("leaf", true);
+        }
+
+        // end of object
+        generator.writeEndObject();
+        generator.writeRaw('\n');
       }
       tx.success();
     }
