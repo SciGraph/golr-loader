@@ -74,6 +74,13 @@ class EvidenceProcessor {
 
   String getEvidenceGraph(Graph graph, Optional<String> metaSourceQuery) {
     TinkerGraphUtil tgu = new TinkerGraphUtil(graph, curieUtil);
+    
+    // Note: this determines what node properties are added to the bbop
+    // graph node props and meta field, since this is only set to label
+    // all other node properties are excluded, thus the meta object will
+    // be empty in solr for all nodes in the evidence graph
+    // This does not affect edge properties
+    // TODO make this configurable or more transparent
     tgu.project(singleton("label"));
     BbopGraph bbopGraph = bbopUtil.convertGraph(tgu.getGraph());
     if (metaSourceQuery.isPresent()) {
