@@ -81,7 +81,10 @@ class EvidenceProcessor {
     // be empty in solr for all nodes in the evidence graph
     // This does not affect edge properties
     // TODO make this configurable or more transparent
-    tgu.project(singleton("label"));
+    List projectedProperties = new ArrayList<String>();
+    projectedProperties.add("label");
+    projectedProperties.add("confidence_score");
+    tgu.project(projectedProperties);
     BbopGraph bbopGraph = bbopUtil.convertGraph(tgu.getGraph());
     if (metaSourceQuery.isPresent()) {
       Map<String, Object> currentMeta = bbopGraph.getMeta();
