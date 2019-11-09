@@ -161,7 +161,7 @@ public class GolrLoader {
         .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
         .relationships(inTaxon, Direction.OUTGOING).uniqueness(Uniqueness.RELATIONSHIP_GLOBAL);
     for (RelationshipType part_of : parts_of) {
-      taxonDescription = taxonDescription.relationships(part_of, Direction.OUTGOING);
+      taxonDescription = taxonDescription.relationships(part_of, Direction.BOTH);
     }
     for (RelationshipType subSequenceOf : subSequenceOfs) {
       taxonDescription = taxonDescription.relationships(subSequenceOf, Direction.INCOMING);
@@ -642,10 +642,20 @@ public class GolrLoader {
           if ("subject".equals(key) && query.getSubjectClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("subject_closure", query.getSubjectClosure());
             closureTypes.addAll(rels);
+
+            // Add all equivalent IDs to subject
+            List<Closure> closures = new ArrayList<>();
+            closures.add(closureUtil.getClosure((Node) value, docUtil.EQUIVALENT_EDGES));
+            docUtil.addClosure("subject_eq", ClosureUtil.collectIds(closures), doc);
           }
           if ("object".equals(key) && query.getObjectClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("object_closure", query.getObjectClosure());
             closureTypes.addAll(rels);
+
+            // Add all equivalent IDs to object
+            List<Closure> closures = new ArrayList<>();
+            closures.add(closureUtil.getClosure((Node) value, docUtil.EQUIVALENT_EDGES));
+            docUtil.addClosure("object_eq", ClosureUtil.collectIds(closures), doc);
           }
           if ("relation".equals(key) && query.getRelationClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("relation_closure", query.getRelationClosure());

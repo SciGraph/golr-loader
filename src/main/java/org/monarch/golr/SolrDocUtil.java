@@ -42,6 +42,8 @@ public class SolrDocUtil {
       new DirectedRelationshipType(OwlRelationships.RDFS_SUB_PROPERTY_OF, Direction.OUTGOING);
   static final Collection<DirectedRelationshipType> DEFAULT_CLOSURE_TYPES =
       ImmutableSet.of(EQUIVALENT_CLASS, SUBCLASS, TYPE, SAME_AS, SUBPROPERTY);
+  static final Collection<DirectedRelationshipType> EQUIVALENT_EDGES =
+      ImmutableSet.of(EQUIVALENT_CLASS, SAME_AS);
   
   private final ObjectMapper mapper = new ObjectMapper();
   private final ClosureUtil closureUtil;
