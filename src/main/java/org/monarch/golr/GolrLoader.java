@@ -554,6 +554,7 @@ public class GolrLoader {
       String[] cypherRels = types.split("\\|");
       for (String cypherRel : cypherRels) {
         String unquotedCypherRel = cypherRel.replaceAll("^`|`$","");
+        unquotedCypherRel = curieUtil.getIri(unquotedCypherRel).orElse(unquotedCypherRel);
         RelationshipType relType = RelationshipType.withName(unquotedCypherRel);
         DirectedRelationshipType dirRelType = new DirectedRelationshipType(relType, Direction.OUTGOING);
         rels.add(dirRelType);
@@ -641,28 +642,32 @@ public class GolrLoader {
           closureTypes.addAll(docUtil.DEFAULT_CLOSURE_TYPES);
           if ("subject".equals(key) && query.getSubjectClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("subject_closure", query.getSubjectClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
 
             // Add all equivalent IDs to subject
             List<Closure> closures = new ArrayList<>();
             closures.add(closureUtil.getClosure((Node) value, docUtil.EQUIVALENT_EDGES));
-            docUtil.addClosure("subject_eq", ClosureUtil.collectIds(closures), doc);
+            docUtil.addClosure("subject_eq", ClosureUtil.collectIdClosure(closures), doc);
           }
           if ("object".equals(key) && query.getObjectClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("object_closure", query.getObjectClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
 
             // Add all equivalent IDs to object
             List<Closure> closures = new ArrayList<>();
             closures.add(closureUtil.getClosure((Node) value, docUtil.EQUIVALENT_EDGES));
-            docUtil.addClosure("object_eq", ClosureUtil.collectIds(closures), doc);
+            docUtil.addClosure("object_eq", ClosureUtil.collectIdClosure(closures), doc);
           }
           if ("relation".equals(key) && query.getRelationClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("relation_closure", query.getRelationClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
           }
           if ("evidence".equals(key) && query.getEvidenceClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("evidence_closure", query.getEvidenceClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
           }
           docUtil.addNodes(key, singleton((Node) value), closureTypes, doc);

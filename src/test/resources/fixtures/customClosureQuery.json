@@ -12,7 +12,7 @@
   "subject_closure": ["http://x.org/gene"],
   "subject_closure_label": ["http://x.org/gene"],
   "subject_closure_map": "{\"http://x.org/gene\":\"http://x.org/gene\"}",
-  "object_eq": ["http://purl.obolibrary.org/obo/UBERON_0001890"],
+  "object_eq": ["http://purl.obolibrary.org/obo/UBERON_0001890", "x:forebrain"],
   "object": ["http://purl.obolibrary.org/obo/UBERON_0001890"],
   "object_label": ["http://purl.obolibrary.org/obo/UBERON_0001890"],
   "object_closure": ["http://purl.obolibrary.org/obo/UBERON_0001062", "http://purl.obolibrary.org/obo/UBERON_0000955", "http://x.org/body_part", "http://purl.obolibrary.org/obo/UBERON_0001890", "http://purl.obolibrary.org/obo/UBERON_0000033"],
