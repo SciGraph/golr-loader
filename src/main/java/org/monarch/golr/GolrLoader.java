@@ -561,7 +561,7 @@ public class GolrLoader {
             || relType.equals(OwlRelationships.OWL_SAME_AS)) {
           direction = Direction.BOTH;
         }
-        DirectedRelationshipType dirRelType = new DirectedRelationshipType(relType, Direction.OUTGOING);
+        DirectedRelationshipType dirRelType = new DirectedRelationshipType(relType, direction);
         rels.add(dirRelType);
       }
     }
