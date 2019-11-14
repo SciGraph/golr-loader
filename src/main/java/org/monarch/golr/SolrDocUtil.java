@@ -22,13 +22,13 @@ import com.google.common.collect.ImmutableSet;
 import io.scigraph.neo4j.DirectedRelationshipType;
 import io.scigraph.owlapi.OwlRelationships;
 
-public class SolrDocUtil {
+class SolrDocUtil {
     
-  static final String ID_SUFFIX = "";
-  static final String ID_CLOSURE_SUFFIX = "_closure";
-  static final String LABEL_SUFFIX = "_label";
-  static final String LABEL_CLOSURE_SUFFIX = "_closure_label";
-  static final String CLOSURE_MAP_SUFFIX = "_closure_map";
+  private static final String ID_SUFFIX = "";
+  private static final String ID_CLOSURE_SUFFIX = "_closure";
+  private static final String LABEL_SUFFIX = "_label";
+  private static final String LABEL_CLOSURE_SUFFIX = "_closure_label";
+  private static final String CLOSURE_MAP_SUFFIX = "_closure_map";
 
   private static final DirectedRelationshipType SUBCLASS =
       new DirectedRelationshipType(OwlRelationships.RDFS_SUBCLASS_OF, Direction.OUTGOING);
@@ -70,10 +70,7 @@ public class SolrDocUtil {
   }
   
   void addClosure(String fieldName, List<String> closures, SolrInputDocument solrDoc) {
-    Set<String> closureSet= new HashSet<String>();
-    for (String closure : closures){
-      closureSet.add(closure);
-    }
+    Set<String> closureSet = new HashSet<String>(closures);
     List<String> closureList = new ArrayList<String>(closureSet);
     solrDoc.addField(fieldName, closureList);
   }

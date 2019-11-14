@@ -15,8 +15,8 @@
   "object_eq": ["http://purl.obolibrary.org/obo/UBERON_0001890", "x:forebrain"],
   "object": ["http://purl.obolibrary.org/obo/UBERON_0001890"],
   "object_label": ["http://purl.obolibrary.org/obo/UBERON_0001890"],
-  "object_closure": ["http://purl.obolibrary.org/obo/UBERON_0001062", "http://purl.obolibrary.org/obo/UBERON_0000955", "http://x.org/body_part", "http://purl.obolibrary.org/obo/UBERON_0001890", "http://purl.obolibrary.org/obo/UBERON_0000033"],
-  "object_closure_label": ["http://purl.obolibrary.org/obo/UBERON_0001062", "http://purl.obolibrary.org/obo/UBERON_0000955", "http://x.org/body_part", "http://purl.obolibrary.org/obo/UBERON_0001890", "http://purl.obolibrary.org/obo/UBERON_0000033"],
-  "object_closure_map": "{\"http://purl.obolibrary.org/obo/UBERON_0001062\":\"http://purl.obolibrary.org/obo/UBERON_0001062\",\"http://purl.obolibrary.org/obo/UBERON_0000955\":\"http://purl.obolibrary.org/obo/UBERON_0000955\",\"http://x.org/body_part\":\"http://x.org/body_part\",\"http://purl.obolibrary.org/obo/UBERON_0001890\":\"http://purl.obolibrary.org/obo/UBERON_0001890\",\"http://purl.obolibrary.org/obo/UBERON_0000033\":\"http://purl.obolibrary.org/obo/UBERON_0000033\"}",
+  "object_closure": ["x:forebrain", "http://purl.obolibrary.org/obo/UBERON_0001062", "http://purl.obolibrary.org/obo/UBERON_0000955", "http://x.org/body_part", "http://purl.obolibrary.org/obo/UBERON_0001890", "http://purl.obolibrary.org/obo/UBERON_0000033"],
+  "object_closure_label": ["x:forebrain", "http://purl.obolibrary.org/obo/UBERON_0001062", "http://purl.obolibrary.org/obo/UBERON_0000955", "http://x.org/body_part", "http://purl.obolibrary.org/obo/UBERON_0001890", "http://purl.obolibrary.org/obo/UBERON_0000033"],
+  "object_closure_map": "{\"x:forebrain\":\"x:forebrain\",\"http://purl.obolibrary.org/obo/UBERON_0001062\":\"http://purl.obolibrary.org/obo/UBERON_0001062\",\"http://purl.obolibrary.org/obo/UBERON_0000955\":\"http://purl.obolibrary.org/obo/UBERON_0000955\",\"http://x.org/body_part\":\"http://x.org/body_part\",\"http://purl.obolibrary.org/obo/UBERON_0001890\":\"http://purl.obolibrary.org/obo/UBERON_0001890\",\"http://purl.obolibrary.org/obo/UBERON_0000033\":\"http://purl.obolibrary.org/obo/UBERON_0000033\"}",
   "object_category": "anatomy"
 }
