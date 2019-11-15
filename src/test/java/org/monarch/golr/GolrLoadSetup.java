@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.scigraph.owlapi.OwlLabels;
 import org.junit.BeforeClass;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -73,6 +74,11 @@ public class GolrLoadSetup extends io.scigraph.util.GraphTestBase {
       forebrain.addLabel(Label.label("anatomical entity"));
       Relationship foo2forebrain = foo.createRelationshipTo(forebrain, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002206"));
       foo2forebrain.setProperty(CommonProperties.IRI, "http://purl.obolibrary.org/obo/RO_0002206");
+
+      Node forebrainEq = createNode("x:forebrain");
+      forebrain.addLabel(Label.label("forebrain"));
+      forebrain.addLabel(Label.label("anatomical entity"));
+      forebrain.createRelationshipTo(forebrainEq, OwlRelationships.OWL_EQUIVALENT_CLASS);
 
       Node brain = createNode("http://purl.obolibrary.org/obo/UBERON_0000955");
       brain.addLabel(Label.label("brain"));

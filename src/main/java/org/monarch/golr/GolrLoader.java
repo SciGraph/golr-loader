@@ -161,7 +161,7 @@ public class GolrLoader {
         .relationships(OwlRelationships.RDF_TYPE, Direction.OUTGOING)
         .relationships(inTaxon, Direction.OUTGOING).uniqueness(Uniqueness.RELATIONSHIP_GLOBAL);
     for (RelationshipType part_of : parts_of) {
-      taxonDescription = taxonDescription.relationships(part_of, Direction.OUTGOING);
+      taxonDescription = taxonDescription.relationships(part_of, Direction.BOTH);
     }
     for (RelationshipType subSequenceOf : subSequenceOfs) {
       taxonDescription = taxonDescription.relationships(subSequenceOf, Direction.INCOMING);
@@ -554,8 +554,14 @@ public class GolrLoader {
       String[] cypherRels = types.split("\\|");
       for (String cypherRel : cypherRels) {
         String unquotedCypherRel = cypherRel.replaceAll("^`|`$","");
+        unquotedCypherRel = curieUtil.getIri(unquotedCypherRel).orElse(unquotedCypherRel);
         RelationshipType relType = RelationshipType.withName(unquotedCypherRel);
-        DirectedRelationshipType dirRelType = new DirectedRelationshipType(relType, Direction.OUTGOING);
+        Direction direction = Direction.OUTGOING;
+        if (relType.equals(OwlRelationships.OWL_EQUIVALENT_CLASS)
+            || relType.equals(OwlRelationships.OWL_SAME_AS)) {
+          direction = Direction.BOTH;
+        }
+        DirectedRelationshipType dirRelType = new DirectedRelationshipType(relType, direction);
         rels.add(dirRelType);
       }
     }
@@ -638,21 +644,35 @@ public class GolrLoader {
         }
         else if ("subject".equals(key) || "object".equals(key) || "relation".equals(key) || "evidence".equals(key)) {
           Set<DirectedRelationshipType> closureTypes = new HashSet<>();
-          closureTypes.addAll(docUtil.DEFAULT_CLOSURE_TYPES);
+          closureTypes.addAll(SolrDocUtil.DEFAULT_CLOSURE_TYPES);
           if ("subject".equals(key) && query.getSubjectClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("subject_closure", query.getSubjectClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
+
+            // Add all equivalent IDs to subject
+            List<Closure> closures = new ArrayList<>();
+            closures.add(closureUtil.getClosure((Node) value, SolrDocUtil.EQUIVALENT_EDGES));
+            docUtil.addClosure("subject_eq", ClosureUtil.collectIdClosure(closures), doc);
           }
           if ("object".equals(key) && query.getObjectClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("object_closure", query.getObjectClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
+
+            // Add all equivalent IDs to object
+            List<Closure> closures = new ArrayList<>();
+            closures.add(closureUtil.getClosure((Node) value, SolrDocUtil.EQUIVALENT_EDGES));
+            docUtil.addClosure("object_eq", ClosureUtil.collectIdClosure(closures), doc);
           }
           if ("relation".equals(key) && query.getRelationClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("relation_closure", query.getRelationClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
           }
           if ("evidence".equals(key) && query.getEvidenceClosure() != null) {
             Set<DirectedRelationshipType> rels = resolveRelationships("evidence_closure", query.getEvidenceClosure());
+            closureTypes.clear();
             closureTypes.addAll(rels);
           }
           docUtil.addNodes(key, singleton((Node) value), closureTypes, doc);

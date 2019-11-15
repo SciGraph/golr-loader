@@ -95,7 +95,7 @@ public class GolrLoaderTest extends GolrLoadSetup {
   @Test
   public void customClosureQuery() throws Exception {
     GolrCypherQuery query = new GolrCypherQuery("MATCH path=(subject:gene)-[relation:`http://purl.obolibrary.org/obo/RO_0002206`]->(object:`anatomical entity`) RETURN DISTINCT path, subject, object, 'gene' AS subject_category, 'anatomy' AS object_category, 'direct' AS qualifier");
-    query.setObjectClosure("rdfs:subClassOf|http://purl.obolibrary.org/obo/BFO_0000050");
+    query.setObjectClosure("subClassOf|http://purl.obolibrary.org/obo/BFO_0000050|equivalentClass|sameAs");
     List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
     results = TestUtils.getResultList(query);
     TinkerGraphUtil tguEvidenceGraph = new TinkerGraphUtil(curieUtil);
