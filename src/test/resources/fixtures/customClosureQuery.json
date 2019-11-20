@@ -8,6 +8,7 @@
   "subject_gene_closure_map": "{\"http://x.org/gene\":\"http://x.org/gene\"}",
   "subject_ortholog_closure": ["http://x.org/gene_ortholog"],
   "subject": ["http://x.org/gene"],
+  "subject_eq": ["http://x.org/gene"],
   "subject_label": ["http://x.org/gene"],
   "subject_closure": ["http://x.org/gene"],
   "subject_closure_label": ["http://x.org/gene"],
