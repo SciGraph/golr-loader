@@ -50,8 +50,13 @@ public class SimpleLoadSetup extends io.scigraph.util.GraphTestBase {
             taxa.addLabel(Label.label("organism"));
             taxa.addLabel(Label.label("cliqueLeader"));
             Node geneB = createNode("http://x.org/geneB");
+
+            Node phenotype = createNode("http://x.org/phenotype");
+            phenotype.addLabel(Label.label("phenotype"));
+
             gene.createRelationshipTo(taxa, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002162"));
             gene.createRelationshipTo(geneB, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002435"));
+            gene.createRelationshipTo(phenotype, RelationshipType.withName("http://purl.obolibrary.org/obo/RO_0002200"));
 
             Node bnode1 = createNode("_:1234");
             bnode1.setProperty(NodeProperties.LABEL, "some bnode");

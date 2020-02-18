@@ -11,7 +11,8 @@
     "synonym":[
 
     ],
-    "edges":3,
+    "has_phenotype": true,
+    "edges":4,
     "taxon":"X:taxa",
     "taxon_label":"Homo sapiens",
     "taxon_label_synonym":[
@@ -39,6 +40,7 @@
     "synonym":[
 
     ],
+    "has_phenotype": false,
     "edges":1,
     "taxon":"",
     "taxon_label":"",

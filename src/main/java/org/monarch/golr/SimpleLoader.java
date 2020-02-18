@@ -14,15 +14,7 @@ import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.*;
 import org.prefixcommons.CurieUtil;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -166,6 +158,10 @@ class SimpleLoader {
           writeOptionalArray("taxon_label_synonym", generator, new ArrayList<Label>());
         }
 
+        // Check if node is connected to a phenotype
+        boolean hasPheno = isPhenotypeConnected(iri);
+        generator.writeBooleanField("has_phenotype", hasPheno);
+
         // categories
         writeOptionalArray("category", generator,
                 Lists.newArrayList(baseNode.getLabels()));
@@ -234,6 +230,22 @@ class SimpleLoader {
       }
     }
     return false;
+  }
+
+  private boolean isPhenotypeConnected(String iri) {
+    boolean hasPhenotype = false;
+    String phenoQuery = String.format(
+        "MATCH (n:Node {iri:'%s'})-[:`http://purl.obolibrary.org/obo/RO_0002200`]-(:phenotype) RETURN n LIMIT 1",
+        iri);
+    try (Transaction tx = graphDb.beginTx()) {
+
+      Result result = graphDb.execute(phenoQuery);
+      if (result.hasNext()) {
+        hasPhenotype = true;
+      }
+      tx.success();
+    }
+    return hasPhenotype;
   }
 
   public void writeOptionalArray(String fieldName, JsonGenerator generator,
