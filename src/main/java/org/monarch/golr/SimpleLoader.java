@@ -159,8 +159,16 @@ class SimpleLoader {
         }
 
         // Check if node is connected to a phenotype
-        boolean hasPheno = isPhenotypeConnected(iri);
-        generator.writeBooleanField("has_phenotype", hasPheno);
+        boolean hasPhenotype = false;
+        String phenoQuery = String.format(
+            "MATCH (n:Node {iri:'%s'})-[:`http://purl.obolibrary.org/obo/RO_0002200`]-(:phenotype) RETURN n LIMIT 1",
+            iri);
+
+        Result result = graphDb.execute(phenoQuery);
+        if (result.hasNext()) {
+          hasPhenotype = true;
+        }
+        generator.writeBooleanField("has_phenotype", hasPhenotype);
 
         // categories
         writeOptionalArray("category", generator,
@@ -230,22 +238,6 @@ class SimpleLoader {
       }
     }
     return false;
-  }
-
-  private boolean isPhenotypeConnected(String iri) {
-    boolean hasPhenotype = false;
-    String phenoQuery = String.format(
-        "MATCH (n:Node {iri:'%s'})-[:`http://purl.obolibrary.org/obo/RO_0002200`]-(:phenotype) RETURN n LIMIT 1",
-        iri);
-    try (Transaction tx = graphDb.beginTx()) {
-
-      Result result = graphDb.execute(phenoQuery);
-      if (result.hasNext()) {
-        hasPhenotype = true;
-      }
-      tx.success();
-    }
-    return hasPhenotype;
   }
 
   public void writeOptionalArray(String fieldName, JsonGenerator generator,
