@@ -94,7 +94,7 @@ class SimpleLoader {
         String[] curieParts;
         curieParts = curie.get().split(":");
         if (curieParts.length == 1) {
-          logger.info("Curie does not have colon");
+          logger.info("Curie does not have reference");
           logger.info(curie.get());
           continue;
         }
