@@ -91,11 +91,18 @@ class SimpleLoader {
           continue;
         }
 
-        generator.writeStartObject();
-        generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
-        String[] curieParts = curie.get().split(":");
+        String[] curieParts;
+        curieParts = curie.get().split(":");
+        if (curieParts.length == 1) {
+          logger.info("Curie does not have reference");
+          logger.info(curie.get());
+          continue;
+        }
+
         String prefix = curieParts[0];
         String reference = curieParts[1];
+        generator.writeStartObject();
+        generator.writeStringField("id", curieUtil.getCurie(iri).orElse(iri));
         generator.writeStringField("prefix", prefix);
 
         try{
