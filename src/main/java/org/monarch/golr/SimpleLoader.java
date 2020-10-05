@@ -197,11 +197,16 @@ class SimpleLoader {
           if (eqCurie.isPresent()) {
             equivalentCuries.add(eqCurie.get());
             String[] eqParts = eqCurie.get().split(":");
-            String eqPrefix = eqParts[0];
-            String eqReference = eqParts[1];
-            if (eqCurieMap.containsKey(eqPrefix)) {
-              for (String prefx : eqCurieMap.get(eqPrefix)) {
-                equivalentCuries.add(prefx + ":" +  eqReference);
+            if (eqParts.length == 1) {
+              logger.info("Curie does not have reference");
+              logger.info(curie.get());
+            } else {
+              String eqPrefix = eqParts[0];
+              String eqReference = eqParts[1];
+              if (eqCurieMap.containsKey(eqPrefix)) {
+                for (String prefx : eqCurieMap.get(eqPrefix)) {
+                  equivalentCuries.add(prefx + ":" +  eqReference);
+                }
               }
             }
           }
