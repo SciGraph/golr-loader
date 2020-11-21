@@ -11,6 +11,9 @@
     "synonym":[
 
     ],
+    "abbreviation":[
+
+    ],
     "has_phenotype": true,
     "edges":4,
     "taxon":"X:taxa",
@@ -38,6 +41,9 @@
 
     ],
     "synonym":[
+
+    ],
+    "abbreviation":[
 
     ],
     "has_phenotype": false,

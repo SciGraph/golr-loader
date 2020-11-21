@@ -116,8 +116,13 @@ class SimpleLoader {
         }
         writeOptionalArray("definition", generator,
                 GraphUtil.getProperties(baseNode, Concept.DEFINITION, String.class));
+
         writeOptionalArray("synonym", generator,
                 GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
+
+        // Abbreviation (need to fix spelling in io.scigraph.frames.Concept
+        writeOptionalArray("abbreviation", generator,
+            GraphUtil.getProperties(baseNode, Concept.ABREVIATION, String.class));
 
         // Number of edges
         generator.writeNumberField("edges",
