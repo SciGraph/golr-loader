@@ -117,9 +117,6 @@ class SimpleLoader {
         writeOptionalArray("definition", generator,
                 GraphUtil.getProperties(baseNode, Concept.DEFINITION, String.class));
 
-        writeOptionalArray("synonym", generator,
-                GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class));
-
         // Abbreviation (need to fix spelling in io.scigraph.frames.Concept
         writeOptionalArray("abbreviation", generator,
             GraphUtil.getProperties(baseNode, Concept.ABREVIATION, String.class));
@@ -196,9 +193,18 @@ class SimpleLoader {
           }
         }
 
+        Set<String> synonyms = Sets.newHashSet(
+            GraphUtil.getProperties(baseNode, Concept.SYNONYM, String.class)
+        );
+
         for (String equivalentIri : equivalences) {
           // Get curie prefix
           Optional<String> eqCurie = curieUtil.getCurie(equivalentIri);
+          Node eqNode = graphDb.getNodeById(graph.getNode(equivalentIri).get());
+          Set<String> eqSynonyms = Sets.newHashSet(
+              GraphUtil.getProperties(eqNode, Concept.SYNONYM, String.class)
+          );
+          synonyms.addAll(eqSynonyms);
           if (eqCurie.isPresent()) {
             equivalentCuries.add(eqCurie.get());
             String[] eqParts = eqCurie.get().split(":");
@@ -217,6 +223,7 @@ class SimpleLoader {
           }
         }
 
+        writeOptionalArray("synonym", generator, synonyms);
         writeOptionalArray("equivalent_curie", generator, equivalentCuries);
 
         // is leaf

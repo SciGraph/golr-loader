@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+import io.scigraph.frames.Concept;
 import org.junit.BeforeClass;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -68,6 +69,7 @@ public class SimpleLoadSetup extends io.scigraph.util.GraphTestBase {
 
             Node eqGene = createNode("http://x.org/eqGeneA");
             gene.createRelationshipTo(eqGene, OwlRelationships.OWL_SAME_AS);
+            eqGene.setProperty(Concept.SYNONYM, "GeneAish");
 
             tx.success();
         }
