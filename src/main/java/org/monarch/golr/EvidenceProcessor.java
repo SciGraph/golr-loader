@@ -57,7 +57,7 @@ class EvidenceProcessor {
     String hasEvidenceStr = "http://purl.obolibrary.org/obo/RO_0002558";
     this.hasEvidence = curieUtil.getCurie(hasEvidenceStr).orElse(hasEvidenceStr);
 
-    String sourceStr = "http://purl.org/dc/elements/1.1/source";
+    String sourceStr = "http://purl.org/dc/terms/source";
     this.source = curieUtil.getCurie(sourceStr).orElse(sourceStr);
 
     String isDefinedByStr = OwlRelationships.RDFS_IS_DEFINED_BY.name();
