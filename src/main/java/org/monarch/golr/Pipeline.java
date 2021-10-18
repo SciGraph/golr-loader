@@ -50,7 +50,7 @@ public class Pipeline {
   private static ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
   // Or alternatively Runtime.getRuntime().availableProcessors()
-  private static final int N_THREADS = 7;
+  private static final int N_THREADS = 6;
 
   private static final Object SOLR_LOCK = new Object();
 
